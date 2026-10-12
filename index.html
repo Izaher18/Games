@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Connect Four</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <main class="app">
+      <header class="top">
+        <p class="kicker">Two players</p>
+        <h1>Connect Four</h1>
+        <div class="players">
+          <div class="player" id="player-one">
+            <span class="chip red"></span>
+            Red
+          </div>
+          <div class="player" id="player-two">
+            <span class="chip yellow"></span>
+            Yellow
+          </div>
+        </div>
+        <p class="status" id="status" role="status"></p>
+      </header>
+
+      <div class="stage" id="stage">
+        <div class="table">
+          <div class="board" id="board" role="group" aria-label="Connect Four board"></div>
+          <div class="feet" aria-hidden="true"></div>
+        </div>
+      </div>
+
+      <button class="restart" id="restart" type="button">Play again</button>
+    </main>
+    <script src="board.js"></script>
+    <script src="main.js"></script>
+  </body>
+</html>
