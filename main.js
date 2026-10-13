@@ -3,20 +3,29 @@
 
   const { ROWS, COLS, Player, createGame } = ConnectFour;
   const DROP_MS = 360;
+  const THINK_MS = 280;
 
   const game = createGame();
   const boardEl = document.querySelector("#board");
   const stageEl = document.querySelector("#stage");
   const statusEl = document.querySelector("#status");
+  const kickerEl = document.querySelector("#kicker");
   const playerOneEl = document.querySelector("#player-one");
   const playerTwoEl = document.querySelector("#player-two");
+  const playerOneNameEl = document.querySelector("#player-one-name");
+  const playerTwoNameEl = document.querySelector("#player-two-name");
   const restartEl = document.querySelector("#restart");
+  const modeComputerEl = document.querySelector("#mode-computer");
+  const modePeopleEl = document.querySelector("#mode-people");
 
   const columns = [];
   let locked = false;
+  let thinking = false;
+  let versusComputer = true;
   let dropToken = 0;
 
   function sideName(player) {
+    if (versusComputer) return player === Player.One ? "You" : "Computer";
     return player === Player.One ? "Red" : "Yellow";
   }
 
@@ -25,9 +34,28 @@
   }
 
   function statusMessage() {
-    if (game.winner) return sideName(game.winner) + " connects four.";
+    if (game.winner) {
+      if (versusComputer) {
+        return game.winner === Player.One ? "You win." : "Computer wins.";
+      }
+      return sideName(game.winner) + " connects four.";
+    }
     if (game.isDraw) return "Draw. The board is full.";
+    if (thinking) return "Computer is choosing a column.";
+    if (versusComputer) return "Your turn.";
     return sideName(game.current) + " to move.";
+  }
+
+  function syncChrome() {
+    kickerEl.textContent = versusComputer ? "Versus computer" : "Two players";
+    playerOneNameEl.textContent = versusComputer ? "You" : "Red";
+    playerTwoNameEl.textContent = versusComputer ? "Computer" : "Yellow";
+    modeComputerEl.classList.toggle("is-selected", versusComputer);
+    modePeopleEl.classList.toggle("is-selected", !versusComputer);
+    modeComputerEl.setAttribute("aria-pressed", String(versusComputer));
+    modePeopleEl.setAttribute("aria-pressed", String(!versusComputer));
+    playerTwoEl.classList.toggle("is-thinking", thinking);
+    boardEl.setAttribute("aria-busy", thinking ? "true" : "false");
   }
 
   function build() {
@@ -60,9 +88,13 @@
     const sample = columns[0].querySelector(".slot");
     const slotSize = sample.getBoundingClientRect().height;
     const gap = parseFloat(getComputedStyle(columns[0]).rowGap) || 0;
+    const humanCanPlay =
+      !game.isOver && !locked && !thinking && (!versusComputer || game.current === Player.One);
 
     stageEl.classList.toggle("is-over", game.isOver);
+    stageEl.classList.toggle("is-thinking", thinking);
     stageEl.dataset.turn = sideClass(game.current);
+    syncChrome();
     statusEl.textContent = statusMessage();
 
     const redActive =
@@ -75,7 +107,7 @@
     for (let col = 0; col < COLS; col += 1) {
       const button = columns[col];
       const columnFull = board[0][col] !== Player.None;
-      button.disabled = game.isOver || columnFull;
+      button.disabled = !humanCanPlay || columnFull;
       button.classList.toggle("is-full", columnFull);
       button.setAttribute(
         "aria-label",
@@ -83,7 +115,7 @@
           ? "Column " + (col + 1) + " is full"
           : game.isOver
             ? "Column " + (col + 1)
-            : "Drop " + sideName(game.current) + " in column " + (col + 1)
+            : "Drop a " + sideClass(game.current) + " disc in column " + (col + 1)
       );
 
       const ghost = button.querySelector(".ghost");
@@ -111,23 +143,80 @@
   }
 
   function onColumn(col) {
-    if (locked) return;
+    if (locked || thinking || game.isOver) return;
+    if (versusComputer && game.current !== Player.One) return;
+
     const result = game.drop(col);
     if (!result.ok) return;
+
     locked = true;
     const token = ++dropToken;
     render(result);
     window.setTimeout(() => {
-      if (token === dropToken) locked = false;
+      if (token !== dropToken) return;
+      if (versusComputer && !game.isOver && game.current === Player.Two) {
+        beginComputerTurn(token);
+        return;
+      }
+      locked = false;
+      render(null);
     }, DROP_MS);
+  }
+
+  function beginComputerTurn(token) {
+    thinking = true;
+    render(null);
+    window.setTimeout(() => {
+      if (token !== dropToken) return;
+
+      let col = -1;
+      try {
+        col = ConnectFourAI.chooseColumn(game.board, Player.Two);
+      } catch (error) {
+        thinking = false;
+        locked = false;
+        render(null);
+        throw error;
+      }
+
+      thinking = false;
+      const result = game.drop(col);
+      if (!result.ok) {
+        locked = false;
+        render(null);
+        return;
+      }
+
+      render(result);
+      window.setTimeout(() => {
+        if (token === dropToken) {
+          locked = false;
+          if (!game.isOver) render(null);
+        }
+      }, DROP_MS);
+    }, THINK_MS);
+  }
+
+  function selectMode(nextVersusComputer) {
+    if (nextVersusComputer === versusComputer) return;
+    versusComputer = nextVersusComputer;
+    dropToken += 1;
+    locked = false;
+    thinking = false;
+    game.reset();
+    render(null);
   }
 
   restartEl.addEventListener("click", () => {
     dropToken += 1;
     locked = false;
+    thinking = false;
     game.reset();
     render(null);
   });
+
+  modeComputerEl.addEventListener("click", () => selectMode(true));
+  modePeopleEl.addEventListener("click", () => selectMode(false));
 
   build();
   render(null);

@@ -2,7 +2,7 @@
  * Connect Four rules, shared by the page and the later opponent.
  *
  * Sitting 1: local two-player game.
- * Sitting 2: computer opponent.
+ * Sitting 2: computer opponent (ai.js).
  * Sitting 3: difficulty and match extras.
  */
 (function (root, factory) {

@@ -9,16 +9,24 @@
   <body>
     <main class="app">
       <header class="top">
-        <p class="kicker">Two players</p>
+        <p class="kicker" id="kicker">Versus computer</p>
         <h1>Connect Four</h1>
+        <div class="modes" role="group" aria-label="Who plays yellow">
+          <button class="mode is-selected" id="mode-computer" type="button" aria-pressed="true">
+            Computer
+          </button>
+          <button class="mode" id="mode-people" type="button" aria-pressed="false">
+            Two players
+          </button>
+        </div>
         <div class="players">
           <div class="player" id="player-one">
             <span class="chip red"></span>
-            Red
+            <span id="player-one-name">You</span>
           </div>
           <div class="player" id="player-two">
             <span class="chip yellow"></span>
-            Yellow
+            <span id="player-two-name">Computer</span>
           </div>
         </div>
         <p class="status" id="status" role="status"></p>
@@ -34,6 +42,7 @@
       <button class="restart" id="restart" type="button">Play again</button>
     </main>
     <script src="board.js"></script>
+    <script src="ai.js"></script>
     <script src="main.js"></script>
   </body>
 </html>
