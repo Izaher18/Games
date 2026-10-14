@@ -5,6 +5,7 @@
   const DROP_MS = 360;
   const THINK_MS = 280;
   const DIFFICULTY_KEY = "connect4-difficulty";
+  const SCORE_KEY = "connect4-scores";
   const DIFFICULTY = {
     easy: { maxDepth: 2, softDepth: 2, budgetMs: 40, blunder: 0.55 },
     medium: { maxDepth: 5, softDepth: 4, budgetMs: 80, blunder: 0 },
@@ -20,6 +21,10 @@
   const playerTwoEl = document.querySelector("#player-two");
   const playerOneNameEl = document.querySelector("#player-one-name");
   const playerTwoNameEl = document.querySelector("#player-two-name");
+  const playerOneScoreEl = document.querySelector("#player-one-score");
+  const playerTwoScoreEl = document.querySelector("#player-two-score");
+  const drawsEl = document.querySelector("#draws");
+  const clearScoresEl = document.querySelector("#clear-scores");
   const restartEl = document.querySelector("#restart");
   const modeComputerEl = document.querySelector("#mode-computer");
   const modePeopleEl = document.querySelector("#mode-people");
@@ -36,6 +41,8 @@
   let versusComputer = true;
   let difficulty = "medium";
   let dropToken = 0;
+  let scores = loadScores();
+  let recordedField = null;
 
   const savedDifficulty = readStorage(DIFFICULTY_KEY);
   if (savedDifficulty && DIFFICULTY[savedDifficulty]) difficulty = savedDifficulty;
@@ -78,6 +85,50 @@
       difficultyButtons[name].classList.toggle("is-selected", selected);
       difficultyButtons[name].setAttribute("aria-pressed", String(selected));
     }
+    renderScore();
+  }
+
+  function emptyScores() {
+    return {
+      computer: { one: 0, two: 0, draws: 0 },
+      people: { one: 0, two: 0, draws: 0 },
+    };
+  }
+
+  function loadScores() {
+    try {
+      const saved = JSON.parse(readStorage(SCORE_KEY) || "");
+      if (!saved || !saved.computer || !saved.people) return emptyScores();
+      for (const mode of ["computer", "people"]) {
+        for (const field of ["one", "two", "draws"]) {
+          const value = saved[mode][field];
+          if (!Number.isInteger(value) || value < 0) return emptyScores();
+        }
+      }
+      return saved;
+    } catch (error) {
+      return emptyScores();
+    }
+  }
+
+  function renderScore() {
+    const bucket = scores[versusComputer ? "computer" : "people"];
+    playerOneScoreEl.textContent = String(bucket.one);
+    playerTwoScoreEl.textContent = String(bucket.two);
+    drawsEl.textContent = "Draws " + bucket.draws;
+  }
+
+  function saveScores() {
+    writeStorage(SCORE_KEY, JSON.stringify(scores));
+  }
+
+  function maybeRecord() {
+    if (recordedField || !game.isOver) return;
+    const mode = versusComputer ? "computer" : "people";
+    const field = game.isDraw ? "draws" : game.winner === Player.One ? "one" : "two";
+    scores[mode][field] += 1;
+    recordedField = mode + ":" + field;
+    saveScores();
   }
 
   function readStorage(key) {
@@ -132,6 +183,7 @@
     stageEl.classList.toggle("is-over", game.isOver);
     stageEl.classList.toggle("is-thinking", thinking);
     stageEl.dataset.turn = sideClass(game.current);
+    maybeRecord();
     syncChrome();
     statusEl.textContent = statusMessage();
 
@@ -252,6 +304,7 @@
     dropToken += 1;
     locked = false;
     thinking = false;
+    recordedField = null;
     game.reset();
     render(null);
   }
@@ -260,8 +313,15 @@
     dropToken += 1;
     locked = false;
     thinking = false;
+    recordedField = null;
     game.reset();
     render(null);
+  });
+
+  clearScoresEl.addEventListener("click", () => {
+    scores = emptyScores();
+    saveScores();
+    renderScore();
   });
 
   modeComputerEl.addEventListener("click", () => selectMode(true));

@@ -114,6 +114,41 @@ h1 {
   animation: pulse 0.9s ease-in-out infinite;
 }
 
+.tally {
+  min-width: 1ch;
+  font-variant-numeric: tabular-nums;
+  font-weight: 750;
+}
+
+.draws {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  margin: 8px 0 0;
+  color: #78716c;
+  font-size: 0.92rem;
+  font-weight: 650;
+}
+
+.linkish {
+  border: 0;
+  padding: 0;
+  background: none;
+  color: #9a6b2f;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.linkish:hover {
+  color: #1c1917;
+}
+
+.linkish:focus-visible {
+  outline: 3px solid #1c1917;
+  outline-offset: 3px;
+}
+
 .chip,
 .ghost,
 .disc {
