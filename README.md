@@ -12,7 +12,7 @@ You play Red. Click a column to drop a disc. The disc falls to the lowest open s
 
 Wins and draws stay on the name plates until you choose **Clear scores**. Two-player games keep a separate tally. **Undo** takes back the last disc. Against the computer it also takes back Yellow's reply, including a finished game. **Play again** clears the board and starts over with Red.
 
-You can also move between columns with the keyboard and drop a disc with Enter or Space.
+You can also move between columns with the keyboard and drop a disc with Enter or Space. Keys **1** through **7** drop in that column. **U** or Backspace undoes.
 
 ## Project layout
 

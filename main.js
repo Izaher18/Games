@@ -348,6 +348,19 @@
 
   undoEl.addEventListener("click", undo);
 
+  document.addEventListener("keydown", (event) => {
+    if (event.metaKey || event.ctrlKey || event.altKey) return;
+    if (event.key === "u" || event.key === "U" || event.key === "Backspace") {
+      event.preventDefault();
+      undo();
+      return;
+    }
+    const col = "1234567".indexOf(event.key);
+    if (col === -1) return;
+    event.preventDefault();
+    onColumn(col);
+  });
+
   clearScoresEl.addEventListener("click", () => {
     scores = emptyScores();
     saveScores();
