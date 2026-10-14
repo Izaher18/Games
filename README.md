@@ -14,6 +14,8 @@ Wins and draws stay on the name plates until you choose **Clear scores**. Two-pl
 
 You can also move between columns with the keyboard and drop a disc with Enter or Space. Keys **1** through **7** drop in that column. **U** or Backspace undoes.
 
+**Sound on** plays a short note for each drop, and a small flourish when the game ends. The switch is remembered in this browser.
+
 ## Project layout
 
 | File | Role |

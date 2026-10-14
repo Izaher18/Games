@@ -6,6 +6,7 @@
   const THINK_MS = 280;
   const DIFFICULTY_KEY = "connect4-difficulty";
   const SCORE_KEY = "connect4-scores";
+  const SOUND_KEY = "connect4-sound";
   const DIFFICULTY = {
     easy: { maxDepth: 2, softDepth: 2, budgetMs: 40, blunder: 0.55 },
     medium: { maxDepth: 5, softDepth: 4, budgetMs: 80, blunder: 0 },
@@ -26,6 +27,7 @@
   const drawsEl = document.querySelector("#draws");
   const clearScoresEl = document.querySelector("#clear-scores");
   const undoEl = document.querySelector("#undo");
+  const soundEl = document.querySelector("#sound");
   const restartEl = document.querySelector("#restart");
   const modeComputerEl = document.querySelector("#mode-computer");
   const modePeopleEl = document.querySelector("#mode-people");
@@ -45,6 +47,8 @@
   let dropToken = 0;
   let scores = loadScores();
   let recordedField = null;
+  let soundOn = readStorage(SOUND_KEY) !== "off";
+  let audioCtx = null;
 
   const savedDifficulty = readStorage(DIFFICULTY_KEY);
   if (savedDifficulty && DIFFICULTY[savedDifficulty]) difficulty = savedDifficulty;
@@ -89,6 +93,8 @@
     }
     renderScore();
     undoEl.disabled = moves.length === 0;
+    soundEl.textContent = soundOn ? "Sound on" : "Sound off";
+    soundEl.setAttribute("aria-pressed", String(soundOn));
   }
 
   function emptyScores() {
@@ -263,6 +269,7 @@
     if (!result.ok) return;
 
     moves.push(col);
+    playFor(result.player);
     locked = true;
     const token = ++dropToken;
     render(result);
@@ -302,6 +309,7 @@
       }
 
       moves.push(col);
+      playFor(result.player);
       render(result);
       window.setTimeout(() => {
         if (token !== dropToken) return;
@@ -347,6 +355,53 @@
   });
 
   undoEl.addEventListener("click", undo);
+
+  soundEl.addEventListener("click", () => {
+    soundOn = !soundOn;
+    writeStorage(SOUND_KEY, soundOn ? "on" : "off");
+    if (soundOn) ensureAudio();
+    syncChrome();
+  });
+
+  function ensureAudio() {
+    const Context = window.AudioContext || window.webkitAudioContext;
+    if (!Context) return null;
+    if (!audioCtx) audioCtx = new Context();
+    if (audioCtx.state === "suspended") audioCtx.resume();
+    return audioCtx;
+  }
+
+  function tone(ctx, freq, when, duration, peak) {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = "sine";
+    osc.frequency.setValueAtTime(freq, when);
+    gain.gain.setValueAtTime(0.0001, when);
+    gain.gain.exponentialRampToValueAtTime(peak, when + 0.012);
+    gain.gain.exponentialRampToValueAtTime(0.0001, when + duration);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(when);
+    osc.stop(when + duration + 0.02);
+  }
+
+  function playFor(player) {
+    if (!soundOn) return;
+    const ctx = ensureAudio();
+    if (!ctx) return;
+    const now = ctx.currentTime;
+    if (game.winner) {
+      [523, 659, 784].forEach((freq, index) => tone(ctx, freq, now + index * 0.07, 0.18, 0.035));
+      return;
+    }
+    if (game.isDraw) {
+      tone(ctx, 330, now, 0.12, 0.03);
+      tone(ctx, 262, now + 0.08, 0.16, 0.03);
+      return;
+    }
+    const freq = player === Player.One ? 520 : 370;
+    tone(ctx, freq, now, 0.1, 0.04);
+  }
 
   document.addEventListener("keydown", (event) => {
     if (event.metaKey || event.ctrlKey || event.altKey) return;

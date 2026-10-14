@@ -1,9 +1,9 @@
 /**
- * Connect Four rules, shared by the page and the later opponent.
+ * Connect Four rules, shared by the page and the computer opponent.
  *
  * Sitting 1: local two-player game.
  * Sitting 2: computer opponent (ai.js).
- * Sitting 3: difficulty levels, then match extras.
+ * Sitting 3: difficulty, scores, undo, and sound.
  */
 (function (root, factory) {
   const api = factory();
