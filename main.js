@@ -41,7 +41,7 @@
       return sideName(game.winner) + " connects four.";
     }
     if (game.isDraw) return "Draw. The board is full.";
-    if (thinking) return "Computer is choosing a column.";
+    if (versusComputer && game.current === Player.Two) return "Computer is choosing a column.";
     if (versusComputer) return "Your turn.";
     return sideName(game.current) + " to move.";
   }
@@ -107,13 +107,14 @@
     for (let col = 0; col < COLS; col += 1) {
       const button = columns[col];
       const columnFull = board[0][col] !== Player.None;
+      const computerTurn = versusComputer && game.current === Player.Two;
       button.disabled = !humanCanPlay || columnFull;
       button.classList.toggle("is-full", columnFull);
       button.setAttribute(
         "aria-label",
         columnFull
           ? "Column " + (col + 1) + " is full"
-          : game.isOver
+          : game.isOver || computerTurn
             ? "Column " + (col + 1)
             : "Drop a " + sideClass(game.current) + " disc in column " + (col + 1)
       );
@@ -142,6 +143,17 @@
     }
   }
 
+  function releaseColumns() {
+    const board = game.board;
+    const humanCanPlay =
+      !game.isOver && !locked && !thinking && (!versusComputer || game.current === Player.One);
+
+    for (let col = 0; col < COLS; col += 1) {
+      const columnFull = board[0][col] !== Player.None;
+      columns[col].disabled = !humanCanPlay || columnFull;
+    }
+  }
+
   function onColumn(col) {
     if (locked || thinking || game.isOver) return;
     if (versusComputer && game.current !== Player.One) return;
@@ -159,7 +171,7 @@
         return;
       }
       locked = false;
-      render(null);
+      releaseColumns();
     }, DROP_MS);
   }
 
@@ -189,10 +201,9 @@
 
       render(result);
       window.setTimeout(() => {
-        if (token === dropToken) {
-          locked = false;
-          if (!game.isOver) render(null);
-        }
+        if (token !== dropToken) return;
+        locked = false;
+        releaseColumns();
       }, DROP_MS);
     }, THINK_MS);
   }
