@@ -321,23 +321,51 @@ h1 {
   background: linear-gradient(180deg, #0e4cb8, #0a3a8c);
 }
 
-.restart {
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 28px;
+}
+
+.restart,
+.secondary {
   display: block;
-  margin: 28px auto 0;
+  margin: 0;
   padding: 12px 22px;
-  border: 0;
   border-radius: 999px;
-  background: #1c1917;
-  color: #f6f1e8;
   font-weight: 650;
   cursor: pointer;
+}
+
+.restart {
+  border: 0;
+  background: #1c1917;
+  color: #f6f1e8;
+}
+
+.secondary {
+  border: 1px solid rgba(28, 25, 23, 0.16);
+  background: transparent;
+  color: #1c1917;
+}
+
+.secondary:hover {
+  background: rgba(28, 25, 23, 0.05);
+}
+
+.secondary:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
 .restart:hover {
   background: #292524;
 }
 
-.restart:focus-visible {
+.restart:focus-visible,
+.secondary:focus-visible {
   outline: 3px solid #1c1917;
   outline-offset: 3px;
 }

@@ -10,7 +10,7 @@ You play Red. Click a column to drop a disc. The disc falls to the lowest open s
 
 **Computer** and **Two players** switch who controls Yellow. Switching starts a new game. Against the computer, **Easy**, **Medium**, and **Hard** change how far ahead Yellow looks. Easy also misses some chances. The choice is remembered in this browser.
 
-Wins and draws stay on the name plates until you choose **Clear scores**. Two-player games keep a separate tally. **Play again** clears the board and starts over with Red.
+Wins and draws stay on the name plates until you choose **Clear scores**. Two-player games keep a separate tally. **Undo** takes back the last disc. Against the computer it also takes back Yellow's reply, including a finished game. **Play again** clears the board and starts over with Red.
 
 You can also move between columns with the keyboard and drop a disc with Enter or Space.
 

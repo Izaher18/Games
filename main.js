@@ -25,6 +25,7 @@
   const playerTwoScoreEl = document.querySelector("#player-two-score");
   const drawsEl = document.querySelector("#draws");
   const clearScoresEl = document.querySelector("#clear-scores");
+  const undoEl = document.querySelector("#undo");
   const restartEl = document.querySelector("#restart");
   const modeComputerEl = document.querySelector("#mode-computer");
   const modePeopleEl = document.querySelector("#mode-people");
@@ -36,6 +37,7 @@
   };
 
   const columns = [];
+  const moves = [];
   let locked = false;
   let thinking = false;
   let versusComputer = true;
@@ -86,6 +88,7 @@
       difficultyButtons[name].setAttribute("aria-pressed", String(selected));
     }
     renderScore();
+    undoEl.disabled = moves.length === 0;
   }
 
   function emptyScores() {
@@ -128,6 +131,14 @@
     const field = game.isDraw ? "draws" : game.winner === Player.One ? "one" : "two";
     scores[mode][field] += 1;
     recordedField = mode + ":" + field;
+    saveScores();
+  }
+
+  function unrecordResult() {
+    if (!recordedField) return;
+    const parts = recordedField.split(":");
+    scores[parts[0]][parts[1]] = Math.max(0, scores[parts[0]][parts[1]] - 1);
+    recordedField = null;
     saveScores();
   }
 
@@ -251,6 +262,7 @@
     const result = game.drop(col);
     if (!result.ok) return;
 
+    moves.push(col);
     locked = true;
     const token = ++dropToken;
     render(result);
@@ -289,6 +301,7 @@
         return;
       }
 
+      moves.push(col);
       render(result);
       window.setTimeout(() => {
         if (token !== dropToken) return;
@@ -305,7 +318,21 @@
     locked = false;
     thinking = false;
     recordedField = null;
+    moves.length = 0;
     game.reset();
+    render(null);
+  }
+
+  function undo() {
+    if (moves.length === 0) return;
+    dropToken += 1;
+    locked = false;
+    thinking = false;
+    const take = versusComputer && moves.length % 2 === 0 ? 2 : 1;
+    unrecordResult();
+    moves.splice(moves.length - take, take);
+    game.reset();
+    for (const col of moves) game.drop(col);
     render(null);
   }
 
@@ -314,9 +341,12 @@
     locked = false;
     thinking = false;
     recordedField = null;
+    moves.length = 0;
     game.reset();
     render(null);
   });
+
+  undoEl.addEventListener("click", undo);
 
   clearScoresEl.addEventListener("click", () => {
     scores = emptyScores();
