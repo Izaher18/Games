@@ -3,7 +3,7 @@
  *
  * Sitting 1: local two-player game.
  * Sitting 2: computer opponent (ai.js).
- * Sitting 3: difficulty and match extras.
+ * Sitting 3: difficulty levels, then match extras.
  */
 (function (root, factory) {
   const api = factory();

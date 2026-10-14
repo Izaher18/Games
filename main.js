@@ -4,6 +4,12 @@
   const { ROWS, COLS, Player, createGame } = ConnectFour;
   const DROP_MS = 360;
   const THINK_MS = 280;
+  const DIFFICULTY_KEY = "connect4-difficulty";
+  const DIFFICULTY = {
+    easy: { maxDepth: 2, softDepth: 2, budgetMs: 40, blunder: 0.55 },
+    medium: { maxDepth: 5, softDepth: 4, budgetMs: 80, blunder: 0 },
+    hard: { maxDepth: 8, softDepth: 5, budgetMs: 180, blunder: 0 },
+  };
 
   const game = createGame();
   const boardEl = document.querySelector("#board");
@@ -17,12 +23,22 @@
   const restartEl = document.querySelector("#restart");
   const modeComputerEl = document.querySelector("#mode-computer");
   const modePeopleEl = document.querySelector("#mode-people");
+  const difficultyEl = document.querySelector("#difficulties");
+  const difficultyButtons = {
+    easy: document.querySelector("#difficulty-easy"),
+    medium: document.querySelector("#difficulty-medium"),
+    hard: document.querySelector("#difficulty-hard"),
+  };
 
   const columns = [];
   let locked = false;
   let thinking = false;
   let versusComputer = true;
+  let difficulty = "medium";
   let dropToken = 0;
+
+  const savedDifficulty = readStorage(DIFFICULTY_KEY);
+  if (savedDifficulty && DIFFICULTY[savedDifficulty]) difficulty = savedDifficulty;
 
   function sideName(player) {
     if (versusComputer) return player === Player.One ? "You" : "Computer";
@@ -56,6 +72,28 @@
     modePeopleEl.setAttribute("aria-pressed", String(!versusComputer));
     playerTwoEl.classList.toggle("is-thinking", thinking);
     boardEl.setAttribute("aria-busy", thinking ? "true" : "false");
+    difficultyEl.hidden = !versusComputer;
+    for (const name of Object.keys(difficultyButtons)) {
+      const selected = name === difficulty;
+      difficultyButtons[name].classList.toggle("is-selected", selected);
+      difficultyButtons[name].setAttribute("aria-pressed", String(selected));
+    }
+  }
+
+  function readStorage(key) {
+    try {
+      return localStorage.getItem(key);
+    } catch (error) {
+      return null;
+    }
+  }
+
+  function writeStorage(key, value) {
+    try {
+      localStorage.setItem(key, value);
+    } catch (error) {
+      // Private browsing can reject storage. The match still plays.
+    }
   }
 
   function build() {
@@ -183,7 +221,7 @@
 
       let col = -1;
       try {
-        col = ConnectFourAI.chooseColumn(game.board, Player.Two);
+        col = ConnectFourAI.chooseColumn(game.board, Player.Two, DIFFICULTY[difficulty]);
       } catch (error) {
         thinking = false;
         locked = false;
@@ -228,6 +266,15 @@
 
   modeComputerEl.addEventListener("click", () => selectMode(true));
   modePeopleEl.addEventListener("click", () => selectMode(false));
+
+  for (const name of Object.keys(difficultyButtons)) {
+    difficultyButtons[name].addEventListener("click", () => {
+      if (difficulty === name) return;
+      difficulty = name;
+      writeStorage(DIFFICULTY_KEY, name);
+      syncChrome();
+    });
+  }
 
   build();
   render(null);

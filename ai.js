@@ -220,7 +220,27 @@
       if (scored[0].score >= WIN_SCORE || scored[0].score <= LOSS_SCORE) break;
     }
 
+    const blunder = settings.blunder || 0;
+    if (blunder > 0 && Math.random() < blunder) {
+      const opponent = otherPlayer(player);
+      const slips = columns.filter((col) => {
+        if (col === bestCol) return false;
+        const result = applyMove(board, col, player);
+        if (!result || result.winner) return false;
+        return !opponentCanWin(result.board, opponent);
+      });
+      if (slips.length > 0) return slips[Math.floor(Math.random() * slips.length)];
+    }
+
     return bestCol;
+  }
+
+  function opponentCanWin(grid, opponent) {
+    for (let col = 0; col < COLS; col += 1) {
+      const result = applyMove(grid, col, opponent);
+      if (result && result.winner === opponent) return true;
+    }
+    return false;
   }
 
   return {
