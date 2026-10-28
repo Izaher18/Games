@@ -1,0 +1,274 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  color: #1c1917;
+  font-family: "Avenir Next", "Segoe UI", sans-serif;
+  background:
+    radial-gradient(900px 420px at 50% -8%, rgba(76, 160, 60, 0.18), transparent 58%),
+    #f3eee6;
+}
+
+button {
+  font: inherit;
+}
+
+.app {
+  width: min(520px, calc(100% - 32px));
+  margin: 0 auto;
+  padding: 32px 0 48px;
+}
+
+.top {
+  text-align: center;
+}
+
+.kicker {
+  margin: 0 0 8px;
+  color: #9a6b2f;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+h1 {
+  margin: 0;
+  font-size: clamp(2.5rem, 6vw, 3.5rem);
+  font-weight: 750;
+  letter-spacing: -0.045em;
+  line-height: 0.95;
+}
+
+.modes {
+  display: flex;
+  justify-content: center;
+  width: fit-content;
+  margin: 18px auto 0;
+  padding: 4px;
+  gap: 4px;
+  border-radius: 999px;
+  background: rgba(28, 25, 23, 0.06);
+}
+
+.mode {
+  border: 0;
+  border-radius: 999px;
+  padding: 8px 16px;
+  background: transparent;
+  color: #78716c;
+  font-size: 0.92rem;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.mode.is-selected {
+  background: #fff;
+  color: #1c1917;
+  box-shadow: 0 6px 14px rgba(40, 30, 10, 0.08);
+}
+
+.mode:focus-visible {
+  outline: 3px solid #1c1917;
+  outline-offset: 2px;
+}
+
+.scores {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.score {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px;
+  border: 1px solid rgba(28, 25, 23, 0.06);
+  border-radius: 999px;
+  background: #fff;
+  box-shadow: 0 8px 18px rgba(40, 30, 10, 0.06);
+}
+
+.tally {
+  min-width: 2ch;
+  font-variant-numeric: tabular-nums;
+  font-weight: 750;
+}
+
+.chip {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.15);
+}
+
+.chip.apple {
+  background: radial-gradient(circle at 35% 30%, #ff9a9a, #e23b3b 46%, #a81f1f);
+}
+
+.chip.crown {
+  background: radial-gradient(circle at 35% 30%, #ffe58a, #f5c518 48%, #c49008);
+}
+
+.status {
+  min-height: 1.4em;
+  margin: 18px 0 0;
+  font-size: 1.35rem;
+  font-weight: 650;
+  letter-spacing: -0.03em;
+}
+
+.stage {
+  position: relative;
+  width: min(100%, max(280px, 100svh - 320px));
+  margin: 20px auto 0;
+  filter: drop-shadow(0 16px 24px rgba(40, 90, 20, 0.22));
+}
+
+.board {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 22px;
+  border: 12px solid #3d7a24;
+  background: #a7d65a;
+  touch-action: none;
+}
+
+.stage::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 22px;
+  background: rgba(28, 25, 23, 0.28);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 160ms linear;
+}
+
+.stage.is-paused::after,
+.stage.is-over::after {
+  opacity: 1;
+}
+
+.pad {
+  display: none;
+  grid-template-areas:
+    ". up ."
+    "left down right";
+  grid-template-columns: repeat(3, 64px);
+  justify-content: center;
+  gap: 8px;
+  margin-top: 24px;
+}
+
+.arrow {
+  height: 56px;
+  border: 1px solid rgba(28, 25, 23, 0.16);
+  border-radius: 16px;
+  background: #fff;
+  color: #1c1917;
+  font-size: 1.2rem;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.arrow:active {
+  background: rgba(28, 25, 23, 0.08);
+}
+
+.arrow.up { grid-area: up; }
+.arrow.left { grid-area: left; }
+.arrow.down { grid-area: down; }
+.arrow.right { grid-area: right; }
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 28px;
+}
+
+.restart,
+.secondary {
+  display: block;
+  margin: 0;
+  padding: 12px 22px;
+  border-radius: 999px;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.restart {
+  border: 0;
+  background: #1c1917;
+  color: #f6f1e8;
+}
+
+.restart:hover {
+  background: #292524;
+}
+
+.secondary {
+  border: 1px solid rgba(28, 25, 23, 0.16);
+  background: transparent;
+  color: #1c1917;
+}
+
+.secondary:hover {
+  background: rgba(28, 25, 23, 0.05);
+}
+
+.secondary:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.restart:focus-visible,
+.secondary:focus-visible,
+.arrow:focus-visible {
+  outline: 3px solid #1c1917;
+  outline-offset: 3px;
+}
+
+.help {
+  margin: 20px 0 0;
+  color: #78716c;
+  font-size: 0.86rem;
+  text-align: center;
+}
+
+@media (pointer: coarse) {
+  .pad {
+    display: grid;
+  }
+
+  .help {
+    display: none;
+  }
+}
+
+@media (max-width: 560px) {
+  .board {
+    border-width: 8px;
+    border-radius: 16px;
+  }
+
+  .stage::after {
+    border-radius: 16px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stage::after {
+    transition: none;
+  }
+}

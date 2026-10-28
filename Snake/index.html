@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Snake</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <main class="app">
+      <header class="top">
+        <p class="kicker">Arcade classic</p>
+        <h1>Snake</h1>
+        <div class="modes" role="group" aria-label="Speed">
+          <button class="mode" data-speed="slow" type="button" aria-pressed="false">Slow</button>
+          <button class="mode" data-speed="normal" type="button" aria-pressed="false">Normal</button>
+          <button class="mode" data-speed="fast" type="button" aria-pressed="false">Fast</button>
+        </div>
+        <div class="scores">
+          <div class="score">
+            <span class="chip apple"></span>
+            <span>Score</span>
+            <span class="tally" id="score">0</span>
+          </div>
+          <div class="score">
+            <span class="chip crown"></span>
+            <span>Best</span>
+            <span class="tally" id="best">0</span>
+          </div>
+        </div>
+        <p class="status" id="status" role="status"></p>
+      </header>
+
+      <div class="stage" id="stage">
+        <canvas class="board" id="board" role="img" aria-label="Snake board"></canvas>
+      </div>
+
+      <div class="pad" role="group" aria-label="Direction controls">
+        <button class="arrow up" data-direction="up" type="button" aria-label="Up">▲</button>
+        <button class="arrow left" data-direction="left" type="button" aria-label="Left">◀</button>
+        <button class="arrow down" data-direction="down" type="button" aria-label="Down">▼</button>
+        <button class="arrow right" data-direction="right" type="button" aria-label="Right">▶</button>
+      </div>
+
+      <div class="actions">
+        <button class="secondary" id="pause" type="button">Pause</button>
+        <button class="secondary" id="sound" type="button" aria-pressed="true">Sound on</button>
+        <button class="restart" id="restart" type="button">Restart</button>
+      </div>
+
+      <p class="help">Arrow keys or WASD to steer · Space to pause · Enter to play again</p>
+    </main>
+    <script src="game.js"></script>
+    <script src="main.js"></script>
+  </body>
+</html>
