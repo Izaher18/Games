@@ -247,6 +247,16 @@ h1 {
   background: transparent;
 }
 
+.column.is-hint::before {
+  background: rgba(255, 255, 255, 0.18);
+  box-shadow: inset 0 0 0 3px rgba(255, 255, 255, 0.85);
+  animation: hint 0.9s ease-in-out infinite;
+}
+
+.column.is-hint .ghost {
+  opacity: 0.95;
+}
+
 .ghost {
   position: absolute;
   left: 50%;
@@ -305,6 +315,15 @@ h1 {
 
 .disc.is-falling {
   animation: fall 0.34s cubic-bezier(0.2, 0.75, 0.25, 1);
+}
+
+.slot.is-last .disc::before {
+  content: "";
+  position: absolute;
+  inset: 30%;
+  border: 3px solid rgba(255, 255, 255, 0.9);
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.12);
 }
 
 .slot.is-win .disc {
@@ -385,6 +404,12 @@ h1 {
   }
 }
 
+@keyframes hint {
+  50% {
+    opacity: 0.45;
+  }
+}
+
 @media (max-width: 560px) {
   .board,
   .column {
@@ -407,7 +432,8 @@ h1 {
   }
 
   .disc.is-falling,
-  .player.is-thinking .chip {
+  .player.is-thinking .chip,
+  .column.is-hint::before {
     animation: none;
   }
 }
