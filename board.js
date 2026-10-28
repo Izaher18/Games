@@ -112,6 +112,7 @@
 
   function createGame() {
     let board = emptyBoard();
+    let opening = Player.One;
     let current = Player.One;
     let winner = null;
     let isDraw = false;
@@ -152,9 +153,10 @@
         if (result.current !== null) current = result.current;
         return { ok: true, row: result.row, col, player: result.player };
       },
-      reset() {
+      reset(nextOpening) {
+        if (nextOpening === Player.One || nextOpening === Player.Two) opening = nextOpening;
         board = emptyBoard();
-        current = Player.One;
+        current = opening;
         winner = null;
         isDraw = false;
         winningCells = [];

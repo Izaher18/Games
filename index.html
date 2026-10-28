@@ -19,6 +19,14 @@
             Two players
           </button>
         </div>
+        <div class="modes" id="starters" role="group" aria-label="Who moves first">
+          <button class="mode is-selected" id="start-first" type="button" aria-pressed="true">
+            You
+          </button>
+          <button class="mode" id="start-second" type="button" aria-pressed="false">
+            Computer
+          </button>
+        </div>
         <div class="modes" id="difficulties" role="group" aria-label="Computer difficulty">
           <button class="mode" id="difficulty-easy" type="button" aria-pressed="false">Easy</button>
           <button class="mode is-selected" id="difficulty-medium" type="button" aria-pressed="true">
@@ -54,6 +62,7 @@
 
       <div class="actions">
         <button class="secondary" id="undo" type="button">Undo</button>
+        <button class="secondary" id="hint" type="button">Hint</button>
         <button class="secondary" id="sound" type="button" aria-pressed="true">Sound on</button>
         <button class="restart" id="restart" type="button">Play again</button>
       </div>

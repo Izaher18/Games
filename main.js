@@ -4,9 +4,11 @@
   const { ROWS, COLS, Player, createGame } = ConnectFour;
   const DROP_MS = 360;
   const THINK_MS = 280;
+  const HINT_MS = 1800;
   const DIFFICULTY_KEY = "connect4-difficulty";
   const SCORE_KEY = "connect4-scores";
   const SOUND_KEY = "connect4-sound";
+  const STARTER_KEY = "connect4-starter";
   const DIFFICULTY = {
     easy: { maxDepth: 2, softDepth: 2, budgetMs: 40, blunder: 0.55 },
     medium: { maxDepth: 5, softDepth: 4, budgetMs: 80, blunder: 0 },
@@ -27,10 +29,13 @@
   const drawsEl = document.querySelector("#draws");
   const clearScoresEl = document.querySelector("#clear-scores");
   const undoEl = document.querySelector("#undo");
+  const hintEl = document.querySelector("#hint");
   const soundEl = document.querySelector("#sound");
   const restartEl = document.querySelector("#restart");
   const modeComputerEl = document.querySelector("#mode-computer");
   const modePeopleEl = document.querySelector("#mode-people");
+  const startFirstEl = document.querySelector("#start-first");
+  const startSecondEl = document.querySelector("#start-second");
   const difficultyEl = document.querySelector("#difficulties");
   const difficultyButtons = {
     easy: document.querySelector("#difficulty-easy"),
@@ -48,7 +53,10 @@
   let scores = loadScores();
   let recordedField = null;
   let soundOn = readStorage(SOUND_KEY) !== "off";
+  let humanStarts = readStorage(STARTER_KEY) !== "second";
   let audioCtx = null;
+  let hintCol = -1;
+  let hintTimer = 0;
 
   const savedDifficulty = readStorage(DIFFICULTY_KEY);
   if (savedDifficulty && DIFFICULTY[savedDifficulty]) difficulty = savedDifficulty;
@@ -86,13 +94,27 @@
     playerTwoEl.classList.toggle("is-thinking", thinking);
     boardEl.setAttribute("aria-busy", thinking ? "true" : "false");
     difficultyEl.hidden = !versusComputer;
+    const firstLabel = versusComputer ? "You" : "Red";
+    const secondLabel = versusComputer ? "Computer" : "Yellow";
+    startFirstEl.textContent = firstLabel;
+    startSecondEl.textContent = secondLabel;
+    startFirstEl.setAttribute(
+      "aria-label",
+      (firstLabel === "You" ? "You move" : firstLabel + " moves") + " first"
+    );
+    startSecondEl.setAttribute("aria-label", secondLabel + " moves first");
+    startFirstEl.classList.toggle("is-selected", humanStarts);
+    startSecondEl.classList.toggle("is-selected", !humanStarts);
+    startFirstEl.setAttribute("aria-pressed", String(humanStarts));
+    startSecondEl.setAttribute("aria-pressed", String(!humanStarts));
     for (const name of Object.keys(difficultyButtons)) {
       const selected = name === difficulty;
       difficultyButtons[name].classList.toggle("is-selected", selected);
       difficultyButtons[name].setAttribute("aria-pressed", String(selected));
     }
     renderScore();
-    undoEl.disabled = moves.length === 0;
+    undoEl.disabled = undoCount() === 0;
+    hintEl.disabled = !humanCanPlay();
     soundEl.textContent = soundOn ? "Sound on" : "Sound off";
     soundEl.setAttribute("aria-pressed", String(soundOn));
   }
@@ -188,15 +210,45 @@
     }
   }
 
+  function humanCanPlay() {
+    return !game.isOver && !locked && !thinking && (!versusComputer || game.current === Player.One);
+  }
+
+  function lastPlayed(board) {
+    if (moves.length === 0) return null;
+    const col = moves[moves.length - 1];
+    for (let row = 0; row < ROWS; row += 1) {
+      if (board[row][col] !== Player.None) return { row, col };
+    }
+    return null;
+  }
+
+  function clearHint() {
+    window.clearTimeout(hintTimer);
+    if (hintCol >= 0) columns[hintCol].classList.remove("is-hint");
+    hintCol = -1;
+  }
+
+  function showHint() {
+    if (!humanCanPlay()) return;
+    clearHint();
+    const col = ConnectFourAI.chooseColumn(game.board, game.current, DIFFICULTY.hard);
+    if (col < 0) return;
+    hintCol = col;
+    columns[col].classList.add("is-hint");
+    hintTimer = window.setTimeout(clearHint, HINT_MS);
+  }
+
   function render(lastMove) {
     const board = game.board;
     const wins = new Set(game.winningCells.map(([row, col]) => row + ":" + col));
+    const latest = lastPlayed(board);
     const sample = columns[0].querySelector(".slot");
     const slotSize = sample.getBoundingClientRect().height;
     const gap = parseFloat(getComputedStyle(columns[0]).rowGap) || 0;
-    const humanCanPlay =
-      !game.isOver && !locked && !thinking && (!versusComputer || game.current === Player.One);
+    const canPlay = humanCanPlay();
 
+    clearHint();
     stageEl.classList.toggle("is-over", game.isOver);
     stageEl.classList.toggle("is-thinking", thinking);
     stageEl.dataset.turn = sideClass(game.current);
@@ -215,7 +267,7 @@
       const button = columns[col];
       const columnFull = board[0][col] !== Player.None;
       const computerTurn = versusComputer && game.current === Player.Two;
-      button.disabled = !humanCanPlay || columnFull;
+      button.disabled = !canPlay || columnFull;
       button.classList.toggle("is-full", columnFull);
       button.setAttribute(
         "aria-label",
@@ -235,6 +287,10 @@
         const slot = slots[row];
         const occupant = board[row][col];
         slot.classList.toggle("is-win", wins.has(row + ":" + col));
+        slot.classList.toggle(
+          "is-last",
+          latest !== null && latest.row === row && latest.col === col
+        );
         slot.replaceChildren();
         if (occupant === Player.None) continue;
 
@@ -252,13 +308,13 @@
 
   function releaseColumns() {
     const board = game.board;
-    const humanCanPlay =
-      !game.isOver && !locked && !thinking && (!versusComputer || game.current === Player.One);
+    const canPlay = humanCanPlay();
 
     for (let col = 0; col < COLS; col += 1) {
       const columnFull = board[0][col] !== Player.None;
-      columns[col].disabled = !humanCanPlay || columnFull;
+      columns[col].disabled = !canPlay || columnFull;
     }
+    hintEl.disabled = !canPlay;
   }
 
   function onColumn(col) {
@@ -285,6 +341,7 @@
   }
 
   function beginComputerTurn(token) {
+    locked = true;
     thinking = true;
     render(null);
     window.setTimeout(() => {
@@ -319,42 +376,69 @@
     }, THINK_MS);
   }
 
-  function selectMode(nextVersusComputer) {
-    if (nextVersusComputer === versusComputer) return;
-    versusComputer = nextVersusComputer;
+  function openingPlayer() {
+    return humanStarts ? Player.One : Player.Two;
+  }
+
+  function playerForMove(index) {
+    if (index % 2 === 0) return openingPlayer();
+    return openingPlayer() === Player.One ? Player.Two : Player.One;
+  }
+
+  function undoCount() {
+    if (moves.length === 0) return 0;
+    if (!versusComputer) return 1;
+    for (let index = moves.length - 1; index >= 0; index -= 1) {
+      if (playerForMove(index) === Player.One) return moves.length - index;
+    }
+    return 0;
+  }
+
+  function startGame() {
     dropToken += 1;
     locked = false;
     thinking = false;
     recordedField = null;
     moves.length = 0;
-    game.reset();
+    game.reset(openingPlayer());
+    if (versusComputer && game.current === Player.Two) {
+      beginComputerTurn(dropToken);
+      return;
+    }
     render(null);
   }
 
+  function selectMode(nextVersusComputer) {
+    if (nextVersusComputer === versusComputer) return;
+    versusComputer = nextVersusComputer;
+    startGame();
+  }
+
+  function selectStarter(nextHumanStarts) {
+    if (nextHumanStarts === humanStarts) return;
+    humanStarts = nextHumanStarts;
+    writeStorage(STARTER_KEY, humanStarts ? "first" : "second");
+    startGame();
+  }
+
   function undo() {
-    if (moves.length === 0) return;
+    const count = undoCount();
+    if (count === 0) return;
     dropToken += 1;
     locked = false;
     thinking = false;
-    const take = versusComputer && moves.length % 2 === 0 ? 2 : 1;
     unrecordResult();
-    moves.splice(moves.length - take, take);
-    game.reset();
+    moves.splice(moves.length - count, count);
+    game.reset(openingPlayer());
     for (const col of moves) game.drop(col);
     render(null);
   }
 
-  restartEl.addEventListener("click", () => {
-    dropToken += 1;
-    locked = false;
-    thinking = false;
-    recordedField = null;
-    moves.length = 0;
-    game.reset();
-    render(null);
-  });
+  restartEl.addEventListener("click", startGame);
 
   undoEl.addEventListener("click", undo);
+
+  hintEl.addEventListener("click", showHint);
 
   soundEl.addEventListener("click", () => {
     soundOn = !soundOn;
@@ -410,6 +494,11 @@
       undo();
       return;
     }
+    if (event.key === "h" || event.key === "H") {
+      event.preventDefault();
+      showHint();
+      return;
+    }
     const col = "1234567".indexOf(event.key);
     if (col === -1) return;
     event.preventDefault();
@@ -424,6 +513,8 @@
 
   modeComputerEl.addEventListener("click", () => selectMode(true));
   modePeopleEl.addEventListener("click", () => selectMode(false));
+  startFirstEl.addEventListener("click", () => selectStarter(true));
+  startSecondEl.addEventListener("click", () => selectStarter(false));
 
   for (const name of Object.keys(difficultyButtons)) {
     difficultyButtons[name].addEventListener("click", () => {
@@ -435,5 +526,5 @@
   }
 
   build();
-  render(null);
+  startGame();
 })();
