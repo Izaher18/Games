@@ -6,5 +6,6 @@ Classic Snake in plain HTML, CSS and JavaScript. Open `index.html` in a browser 
 - On phones, swipe on the board or use the on-screen arrows; tap the board to pause.
 - Pick Slow, Normal or Fast. The snake speeds up a little with every apple.
 - Best scores are saved per speed in the browser.
+- The snake glides smoothly between cells (turned off if your system asks for reduced motion).
 
 `game.js` holds the rules (movement, turning, food, collisions) and `main.js` handles drawing, input and sound.

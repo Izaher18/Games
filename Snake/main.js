@@ -37,6 +37,7 @@
   const restartButton = document.getElementById("restart");
   const speedButtons = document.querySelectorAll("[data-speed]");
   const touchScreen = window.matchMedia("(pointer: coarse)").matches;
+  const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
 
   let speed = SPEEDS[localStorage.getItem("snake.speed")] ? localStorage.getItem("snake.speed") : "normal";
   let soundOn = localStorage.getItem("snake.sound") !== "off";
@@ -46,6 +47,13 @@
   let timer = null;
   let newBest = false;
   let audio = null;
+  // The board is drawn partway between the previous tick's body and the current one.
+  let prevBody = null;
+  let eaten = null;
+  let tickStart = 0;
+  let tickLength = 1;
+  let pausedProgress = 1;
+  let frame = null;
 
   function loadBests() {
     try {
@@ -58,6 +66,8 @@
   function reset() {
     stopTimer();
     game = Snake.create(SIZE);
+    prevBody = game.body;
+    eaten = null;
     phase = "ready";
     newBest = false;
     update();
@@ -65,10 +75,16 @@
   }
 
   function play() {
+    if (phase === "paused") {
+      tickStart = performance.now() - pausedProgress * tickLength;
+      startTimer(tickLength * (1 - pausedProgress));
+    } else {
+      beginTick();
+      startTimer(tickLength);
+    }
     phase = "playing";
-    schedule();
     update();
-    draw();
+    animate();
   }
 
   function interval() {
@@ -76,9 +92,14 @@
     return Math.max(base * FASTEST_RATIO, base - game.score * SPEEDUP_PER_APPLE);
   }
 
-  function schedule() {
+  function beginTick() {
+    tickLength = interval();
+    tickStart = performance.now();
+  }
+
+  function startTimer(delay) {
     stopTimer();
-    timer = setTimeout(tick, interval());
+    timer = setTimeout(tick, delay);
   }
 
   function stopTimer() {
@@ -86,13 +107,33 @@
     timer = null;
   }
 
+  function progress() {
+    if (reducedMotion.matches) return 1;
+    if (phase === "paused") return pausedProgress;
+    return Math.min(1, (performance.now() - tickStart) / tickLength);
+  }
+
+  function animate() {
+    if (frame === null) frame = requestAnimationFrame(render);
+  }
+
+  function render() {
+    frame = null;
+    draw();
+    if (phase === "playing" || progress() < 1) animate();
+  }
+
   function tick() {
+    prevBody = game.body;
+    const food = game.food;
     const result = Snake.step(game);
+    eaten = result === "eat" ? food : null;
+    beginTick();
     if (result === "eat") beep(660, 0.07);
     if (result === "crash" || result === "win") finish(result);
-    else schedule();
+    else startTimer(tickLength);
     update();
-    draw();
+    animate();
   }
 
   function finish(result) {
@@ -118,6 +159,7 @@
 
   function togglePause() {
     if (phase === "playing") {
+      pausedProgress = progress();
       phase = "paused";
       stopTimer();
       update();
@@ -197,51 +239,62 @@
       }
     }
 
-    if (game.food) drawApple(game.food, cell);
-    drawSnake(cell);
+    const t = progress();
+    if (eaten && t < 1) drawApple(eaten, cell);
+    if (game.food) drawApple(game.food, cell, eaten ? t : 1);
+    drawSnake(cell, t);
   }
 
-  function drawApple(food, cell) {
-    const cx = (food.x + 0.5) * cell;
-    const cy = (food.y + 0.55) * cell;
+  function drawApple(food, cell, scale = 1) {
+    if (scale <= 0) return;
+    ctx.save();
+    ctx.translate((food.x + 0.5) * cell, (food.y + 0.55) * cell);
+    ctx.scale(scale, scale);
     ctx.fillStyle = COLORS.apple;
     ctx.beginPath();
-    ctx.arc(cx, cy, cell * 0.36, 0, Math.PI * 2);
+    ctx.arc(0, 0, cell * 0.36, 0, Math.PI * 2);
     ctx.fill();
     ctx.fillStyle = "rgba(255, 255, 255, 0.45)";
     ctx.beginPath();
-    ctx.arc(cx - cell * 0.12, cy - cell * 0.12, cell * 0.09, 0, Math.PI * 2);
+    ctx.arc(-cell * 0.12, -cell * 0.12, cell * 0.09, 0, Math.PI * 2);
     ctx.fill();
     ctx.fillStyle = COLORS.leaf;
     ctx.beginPath();
-    ctx.ellipse(cx + cell * 0.1, cy - cell * 0.38, cell * 0.12, cell * 0.06, -0.6, 0, Math.PI * 2);
+    ctx.ellipse(cell * 0.1, -cell * 0.38, cell * 0.12, cell * 0.06, -0.6, 0, Math.PI * 2);
     ctx.fill();
+    ctx.restore();
   }
 
-  function drawSnake(cell) {
+  function lerp(from, to, t) {
+    return { x: from.x + (to.x - from.x) * t, y: from.y + (to.y - from.y) * t };
+  }
+
+  function drawSnake(cell, t) {
     const body = game.body;
-    const inset = cell * 0.12;
-    const width = cell - inset * 2;
+    const prev = prevBody || body;
+    const last = body.length - 1;
     const crashed = phase === "over" && !game.won;
 
-    for (let i = body.length - 1; i >= 0; i -= 1) {
-      const part = body[i];
-      const color = mix(COLORS.head, COLORS.tail, body.length > 1 ? i / (body.length - 1) : 0);
-      ctx.fillStyle = color;
-      ctx.beginPath();
-      ctx.roundRect(part.x * cell + inset, part.y * cell + inset, width, width, cell * 0.28);
-      ctx.fill();
+    // The head slides into its new cell while the tail slides out of its old one;
+    // the cells in between stay put, so corners are drawn exactly where they are.
+    // A growing snake has no previous tail cell, so its tail holds still.
+    const points = [
+      lerp(prev[0], body[0], t),
+      ...body.slice(1),
+      lerp(prev[last] || body[last], body[last], t),
+    ];
 
-      const ahead = body[i - 1];
-      if (ahead) {
-        const left = Math.min(part.x, ahead.x) * cell;
-        const top = Math.min(part.y, ahead.y) * cell;
-        if (part.y === ahead.y) ctx.fillRect(left + cell / 2, top + inset, cell, width);
-        else ctx.fillRect(left + inset, top + cell / 2, width, cell);
-      }
+    ctx.lineCap = "round";
+    ctx.lineWidth = cell * 0.76;
+    for (let i = points.length - 2; i >= 0; i -= 1) {
+      ctx.strokeStyle = mix(COLORS.head, COLORS.tail, i / (points.length - 2));
+      ctx.beginPath();
+      ctx.moveTo((points[i].x + 0.5) * cell, (points[i].y + 0.5) * cell);
+      ctx.lineTo((points[i + 1].x + 0.5) * cell, (points[i + 1].y + 0.5) * cell);
+      ctx.stroke();
     }
 
-    drawEyes(body[0], cell, crashed);
+    drawEyes(points[0], cell, crashed);
   }
 
   function drawEyes(head, cell, crashed) {
