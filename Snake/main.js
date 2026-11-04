@@ -4,6 +4,7 @@
   const SPEEDUP_PER_APPLE = 1.5;
   const FASTEST_RATIO = 0.6;
   const SWIPE_DISTANCE = 24;
+  const SPARKS = 12;
   const KEYS = {
     ArrowUp: "up",
     KeyW: "up",
@@ -53,7 +54,9 @@
   let tickStart = 0;
   let tickLength = 1;
   let pausedProgress = 1;
+  let pausedAt = 0;
   let frame = null;
+  const effects = [];
 
   function loadBests() {
     try {
@@ -68,6 +71,7 @@
     game = Snake.create(SIZE);
     prevBody = game.body;
     eaten = null;
+    effects.length = 0;
     phase = "ready";
     newBest = false;
     update();
@@ -76,6 +80,10 @@
 
   function play() {
     if (phase === "paused") {
+      const pausedFor = performance.now() - pausedAt;
+      effects.forEach((effect) => {
+        effect.start += pausedFor;
+      });
       tickStart = performance.now() - pausedProgress * tickLength;
       startTimer(tickLength * (1 - pausedProgress));
     } else {
@@ -120,7 +128,7 @@
   function render() {
     frame = null;
     draw();
-    if (phase === "playing" || progress() < 1) animate();
+    if (phase === "playing" || (phase !== "paused" && (progress() < 1 || effects.length))) animate();
   }
 
   function tick() {
@@ -129,7 +137,10 @@
     const result = Snake.step(game);
     eaten = result === "eat" ? food : null;
     beginTick();
-    if (result === "eat") beep(660, 0.07);
+    if (result === "eat") {
+      beep(660, 0.07);
+      burst(food, tickStart + (reducedMotion.matches ? 0 : tickLength));
+    }
     if (result === "crash" || result === "win") finish(result);
     else startTimer(tickLength);
     update();
@@ -160,6 +171,7 @@
   function togglePause() {
     if (phase === "playing") {
       pausedProgress = progress();
+      pausedAt = performance.now();
       phase = "paused";
       stopTimer();
       update();
@@ -243,6 +255,74 @@
     if (eaten && t < 1) drawApple(eaten, cell);
     if (game.food) drawApple(game.food, cell, eaten ? t : 1);
     drawSnake(cell, t);
+    drawEffects(cell);
+  }
+
+  // Effects are timestamped so an apple's burst can wait for the head to reach it.
+  function burst(at, start) {
+    const x = at.x + 0.5;
+    const y = at.y + 0.5;
+    if (!reducedMotion.matches) {
+      for (let i = 0; i < SPARKS; i += 1) {
+        const angle = (i / SPARKS) * Math.PI * 2 + Math.random() * 0.5;
+        const reach = 0.7 + Math.random() * 0.6;
+        effects.push({
+          kind: "spark",
+          x,
+          y,
+          dx: Math.cos(angle) * reach,
+          dy: Math.sin(angle) * reach,
+          color: i % 3 ? COLORS.apple : COLORS.leaf,
+          start,
+          life: 450,
+        });
+      }
+    }
+    effects.push({ kind: "label", x, y, text: "+1", start, life: 750 });
+  }
+
+  function drawEffects(cell) {
+    const now = phase === "paused" ? pausedAt : performance.now();
+    for (let i = effects.length - 1; i >= 0; i -= 1) {
+      const effect = effects[i];
+      const age = (now - effect.start) / effect.life;
+      if (age >= 1) {
+        effects.splice(i, 1);
+        continue;
+      }
+      if (age < 0) continue;
+      const eased = 1 - (1 - age) ** 2;
+
+      ctx.save();
+      if (effect.kind === "spark") {
+        ctx.globalAlpha = 1 - age;
+        ctx.fillStyle = effect.color;
+        ctx.beginPath();
+        ctx.arc(
+          (effect.x + effect.dx * eased) * cell,
+          (effect.y + effect.dy * eased) * cell,
+          cell * 0.13 * (1 - age * 0.6),
+          0,
+          Math.PI * 2,
+        );
+        ctx.fill();
+      } else {
+        const rise = reducedMotion.matches ? 0 : 0.8 * eased;
+        ctx.globalAlpha = 1 - age ** 3;
+        ctx.font = `800 ${cell * 0.8}px "Avenir Next", "Segoe UI", sans-serif`;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.lineWidth = cell * 0.16;
+        ctx.lineJoin = "round";
+        ctx.strokeStyle = COLORS.leaf;
+        ctx.fillStyle = "#fff";
+        const px = effect.x * cell;
+        const py = (effect.y - 0.6 - rise) * cell;
+        ctx.strokeText(effect.text, px, py);
+        ctx.fillText(effect.text, px, py);
+      }
+      ctx.restore();
+    }
   }
 
   function drawApple(food, cell, scale = 1) {
