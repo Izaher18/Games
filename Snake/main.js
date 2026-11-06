@@ -38,6 +38,7 @@
   const statusEl = document.getElementById("status");
   const pauseButton = document.getElementById("pause");
   const soundButton = document.getElementById("sound");
+  const autopilotButton = document.getElementById("autopilot");
   const restartButton = document.getElementById("restart");
   const speedButtons = document.querySelectorAll("[data-speed]");
   const modeButtons = document.querySelectorAll("[data-mode]");
@@ -52,6 +53,9 @@
   let phase;
   let timer = null;
   let newBest = false;
+  let autopilot = false;
+  let aiPlayed = false;
+  let aiFinished = false;
   let audio = null;
   // The board is drawn partway between the previous tick's body and the current one.
   let prevBody = null;
@@ -84,6 +88,8 @@
     stage.classList.remove("is-shaking");
     phase = "ready";
     newBest = false;
+    autopilot = false;
+    aiPlayed = false;
     update();
     draw();
   }
@@ -142,6 +148,11 @@
   }
 
   function tick() {
+    if (autopilot) {
+      aiPlayed = true;
+      game.queue = [];
+      Snake.turn(game, SnakeAI.nextMove(game));
+    }
     prevBody = game.body;
     const food = game.food;
     const result = Snake.step(game);
@@ -160,7 +171,9 @@
   function finish(result) {
     phase = "over";
     stopTimer();
-    if (game.score > (bests[bestKey()] || 0)) {
+    aiFinished = autopilot;
+    autopilot = false;
+    if (!aiPlayed && game.score > (bests[bestKey()] || 0)) {
       bests[bestKey()] = game.score;
       localStorage.setItem("snake.best", JSON.stringify(bests));
       newBest = true;
@@ -175,8 +188,24 @@
 
   function steer(direction) {
     if (phase === "over" || phase === "paused") return;
+    if (autopilot) {
+      autopilot = false;
+      update();
+    }
     Snake.turn(game, direction);
     if (phase === "ready") play();
+  }
+
+  function toggleAutopilot() {
+    if (autopilot) {
+      autopilot = false;
+      update();
+      return;
+    }
+    if (phase === "over") reset();
+    autopilot = true;
+    if (phase === "ready" || phase === "paused") play();
+    else update();
   }
 
   function togglePause() {
@@ -216,11 +245,15 @@
     if (phase === "ready") {
       statusEl.textContent = touchScreen ? "Swipe or tap an arrow to start" : "Press an arrow key to start";
     } else if (phase === "playing") {
-      statusEl.textContent = `Length ${game.body.length}`;
+      statusEl.textContent = autopilot ? `AI playing, length ${game.body.length}` : `Length ${game.body.length}`;
     } else if (phase === "paused") {
       statusEl.textContent = touchScreen ? "Paused, tap to resume" : "Paused, press space to resume";
     } else if (game.won) {
-      statusEl.textContent = "You filled the whole board!";
+      statusEl.textContent = aiFinished ? "The AI filled the whole board!" : "You filled the whole board!";
+    } else if (aiFinished) {
+      statusEl.textContent = `The AI scored ${game.score}`;
+    } else if (aiPlayed) {
+      statusEl.textContent = `Game over, ${game.score} with the AI's help`;
     } else if (newBest) {
       statusEl.textContent = `New best: ${game.score}!`;
     } else {
@@ -232,6 +265,8 @@
     pauseButton.textContent = phase === "paused" ? "Resume" : "Pause";
     pauseButton.disabled = phase === "over";
     restartButton.textContent = phase === "over" ? "Play again" : "Restart";
+    autopilotButton.textContent = autopilot ? "Take over" : "Watch AI";
+    autopilotButton.setAttribute("aria-pressed", String(autopilot));
     soundButton.textContent = soundOn ? "Sound on" : "Sound off";
     soundButton.setAttribute("aria-pressed", String(soundOn));
     speedButtons.forEach((button) => {
@@ -523,6 +558,9 @@
       event.preventDefault();
       if (phase === "over") reset();
       else togglePause();
+    } else if (event.code === "KeyI") {
+      event.preventDefault();
+      toggleAutopilot();
     } else if (event.code === "Enter" && phase === "over") {
       event.preventDefault();
       reset();
@@ -567,6 +605,7 @@
   });
 
   pauseButton.addEventListener("click", togglePause);
+  autopilotButton.addEventListener("click", toggleAutopilot);
   restartButton.addEventListener("click", reset);
   soundButton.addEventListener("click", () => {
     soundOn = !soundOn;
