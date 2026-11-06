@@ -1,7 +1,7 @@
 (() => {
   const SIZE = 18;
   const SPEEDS = { slow: 150, normal: 110, fast: 75 };
-  const MODES = ["classic", "wrap"];
+  const MODES = ["classic", "wrap", "maze"];
   const SPEEDUP_PER_APPLE = 1.5;
   const FASTEST_RATIO = 0.6;
   const SWIPE_DISTANCE = 24;
@@ -26,6 +26,8 @@
     apple: "#e23b3b",
     leaf: "#3d7a24",
     crashed: "#a81f1f",
+    wall: "#6b563f",
+    wallTop: "#8a7253",
   };
 
   const canvas = document.getElementById("board");
@@ -71,7 +73,11 @@
 
   function reset() {
     stopTimer();
-    game = Snake.create(SIZE, { wrap: mode === "wrap" });
+    const mazes = Snake.mazes(SIZE);
+    game = Snake.create(SIZE, {
+      wrap: mode === "wrap",
+      walls: mode === "maze" ? mazes[Math.floor(Math.random() * mazes.length)] : [],
+    });
     prevBody = game.body;
     eaten = null;
     effects.length = 0;
@@ -272,6 +278,8 @@
       }
     }
 
+    game.walls.forEach((wall) => drawWall(wall, cell));
+
     const t = progress();
     if (eaten && t < 1) drawApple(eaten, cell);
     if (game.food) drawApple(game.food, cell, eaten ? t : 1);
@@ -360,6 +368,19 @@
       }
       ctx.restore();
     }
+  }
+
+  function drawWall(wall, cell) {
+    const inset = cell * 0.04;
+    const size = cell - inset * 2;
+    ctx.fillStyle = COLORS.wall;
+    ctx.beginPath();
+    ctx.roundRect(wall.x * cell + inset, wall.y * cell + inset, size, size, cell * 0.16);
+    ctx.fill();
+    ctx.fillStyle = COLORS.wallTop;
+    ctx.beginPath();
+    ctx.roundRect(wall.x * cell + inset, wall.y * cell + inset, size, size * 0.78, cell * 0.16);
+    ctx.fill();
   }
 
   function drawApple(food, cell, scale = 1) {

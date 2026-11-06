@@ -13,6 +13,7 @@ const Snake = (() => {
     const state = {
       size,
       wrap: Boolean(options.wrap),
+      walls: options.walls || [],
       body: [
         { x: mid, y: mid },
         { x: mid - 1, y: mid },
@@ -47,7 +48,7 @@ const Snake = (() => {
   }
 
   function placeFood(state) {
-    const taken = new Set(state.body.map((cell) => cell.y * state.size + cell.x));
+    const taken = new Set([...state.body, ...state.walls].map((cell) => cell.y * state.size + cell.x));
     const free = [];
     for (let y = 0; y < state.size; y += 1) {
       for (let x = 0; x < state.size; x += 1) {
@@ -73,7 +74,8 @@ const Snake = (() => {
     const rest = eating ? state.body : state.body.slice(0, -1);
 
     const outside = next.x < 0 || next.y < 0 || next.x >= state.size || next.y >= state.size;
-    if (outside || rest.some((cell) => cell.x === next.x && cell.y === next.y)) {
+    const hits = (cell) => cell.x === next.x && cell.y === next.y;
+    if (outside || rest.some(hits) || state.walls.some(hits)) {
       state.over = true;
       return "crash";
     }
@@ -91,5 +93,29 @@ const Snake = (() => {
     return "eat";
   }
 
-  return { DIRECTIONS, create, turn, step };
+  // Every layout leaves the middle row clear, since the snake starts there heading right.
+  function mazes(size) {
+    const near = 3;
+    const far = size - 4;
+    const arm = 4;
+
+    const corners = [];
+    [[near, 1], [far, -1]].forEach(([cx, sx]) => {
+      [[near, 1], [far, -1]].forEach(([cy, sy]) => {
+        corners.push({ x: cx, y: cy });
+        for (let i = 1; i < arm; i += 1) {
+          corners.push({ x: cx + sx * i, y: cy }, { x: cx, y: cy + sy * i });
+        }
+      });
+    });
+
+    const bars = [];
+    for (let x = near + 1; x <= far - 1; x += 1) {
+      bars.push({ x, y: near + 1 }, { x, y: far - 1 });
+    }
+
+    return [corners, bars];
+  }
+
+  return { DIRECTIONS, create, turn, step, mazes };
 })();
