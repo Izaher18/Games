@@ -8,10 +8,11 @@ const Snake = (() => {
 
   const MAX_QUEUED_TURNS = 2;
 
-  function create(size) {
+  function create(size, options = {}) {
     const mid = Math.floor(size / 2);
     const state = {
       size,
+      wrap: Boolean(options.wrap),
       body: [
         { x: mid, y: mid },
         { x: mid - 1, y: mid },
@@ -63,6 +64,10 @@ const Snake = (() => {
     const delta = DIRECTIONS[state.direction];
     const head = state.body[0];
     const next = { x: head.x + delta.x, y: head.y + delta.y };
+    if (state.wrap) {
+      next.x = (next.x + state.size) % state.size;
+      next.y = (next.y + state.size) % state.size;
+    }
     const eating = state.food && next.x === state.food.x && next.y === state.food.y;
     // The tail moves out of the way this tick unless the snake is growing.
     const rest = eating ? state.body : state.body.slice(0, -1);

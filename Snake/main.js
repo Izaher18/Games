@@ -1,6 +1,7 @@
 (() => {
   const SIZE = 18;
   const SPEEDS = { slow: 150, normal: 110, fast: 75 };
+  const MODES = ["classic", "wrap"];
   const SPEEDUP_PER_APPLE = 1.5;
   const FASTEST_RATIO = 0.6;
   const SWIPE_DISTANCE = 24;
@@ -37,10 +38,12 @@
   const soundButton = document.getElementById("sound");
   const restartButton = document.getElementById("restart");
   const speedButtons = document.querySelectorAll("[data-speed]");
+  const modeButtons = document.querySelectorAll("[data-mode]");
   const touchScreen = window.matchMedia("(pointer: coarse)").matches;
   const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
 
   let speed = SPEEDS[localStorage.getItem("snake.speed")] ? localStorage.getItem("snake.speed") : "normal";
+  let mode = MODES.includes(localStorage.getItem("snake.mode")) ? localStorage.getItem("snake.mode") : "classic";
   let soundOn = localStorage.getItem("snake.sound") !== "off";
   const bests = loadBests();
   let game;
@@ -68,7 +71,7 @@
 
   function reset() {
     stopTimer();
-    game = Snake.create(SIZE);
+    game = Snake.create(SIZE, { wrap: mode === "wrap" });
     prevBody = game.body;
     eaten = null;
     effects.length = 0;
@@ -151,8 +154,8 @@
   function finish(result) {
     phase = "over";
     stopTimer();
-    if (game.score > (bests[speed] || 0)) {
-      bests[speed] = game.score;
+    if (game.score > (bests[bestKey()] || 0)) {
+      bests[bestKey()] = game.score;
       localStorage.setItem("snake.best", JSON.stringify(bests));
       newBest = true;
     }
@@ -189,9 +192,20 @@
     reset();
   }
 
+  function setMode(next) {
+    mode = next;
+    localStorage.setItem("snake.mode", mode);
+    reset();
+  }
+
+  // Classic keeps the plain speed key so best scores saved before modes existed still count.
+  function bestKey() {
+    return mode === "classic" ? speed : `${mode}.${speed}`;
+  }
+
   function update() {
     scoreEl.textContent = game.score;
-    bestEl.textContent = bests[speed] || 0;
+    bestEl.textContent = bests[bestKey()] || 0;
 
     if (phase === "ready") {
       statusEl.textContent = touchScreen ? "Swipe or tap an arrow to start" : "Press an arrow key to start";
@@ -216,6 +230,11 @@
     soundButton.setAttribute("aria-pressed", String(soundOn));
     speedButtons.forEach((button) => {
       const selected = button.dataset.speed === speed;
+      button.classList.toggle("is-selected", selected);
+      button.setAttribute("aria-pressed", String(selected));
+    });
+    modeButtons.forEach((button) => {
+      const selected = button.dataset.mode === mode;
       button.classList.toggle("is-selected", selected);
       button.setAttribute("aria-pressed", String(selected));
     });
@@ -373,15 +392,44 @@
     const last = body.length - 1;
     const crashed = phase === "over" && !game.won;
 
+    // On a wrapping board each cell is moved next to the one before it, so the snake
+    // is one unbroken path that can hang off an edge; copies shifted by a board's
+    // width then draw the part that comes back in on the far side.
+    const cells = [body[0]];
+    for (let i = 1; i <= last; i += 1) cells.push(beside(body[i], cells[i - 1]));
+
     // The head slides into its new cell while the tail slides out of its old one;
     // the cells in between stay put, so corners are drawn exactly where they are.
     // A growing snake has no previous tail cell, so its tail holds still.
     const points = [
-      lerp(prev[0], body[0], t),
-      ...body.slice(1),
-      lerp(prev[last] || body[last], body[last], t),
+      lerp(beside(prev[0], cells[0]), cells[0], t),
+      ...cells.slice(1),
+      lerp(beside(prev[last] || body[last], cells[last]), cells[last], t),
     ];
 
+    const xs = points.map((p) => p.x);
+    const ys = points.map((p) => p.y);
+    [-SIZE, 0, SIZE].forEach((ox) => {
+      [-SIZE, 0, SIZE].forEach((oy) => {
+        if (Math.max(...xs) + ox < -1 || Math.min(...xs) + ox > SIZE) return;
+        if (Math.max(...ys) + oy < -1 || Math.min(...ys) + oy > SIZE) return;
+        ctx.save();
+        ctx.translate(ox * cell, oy * cell);
+        drawBody(points, cell);
+        drawEyes(points[0], cell, crashed);
+        ctx.restore();
+      });
+    });
+  }
+
+  function beside(cell, anchor) {
+    return {
+      x: cell.x + Math.round((anchor.x - cell.x) / SIZE) * SIZE,
+      y: cell.y + Math.round((anchor.y - cell.y) / SIZE) * SIZE,
+    };
+  }
+
+  function drawBody(points, cell) {
     ctx.lineCap = "round";
     ctx.lineWidth = cell * 0.76;
     for (let i = points.length - 2; i >= 0; i -= 1) {
@@ -391,8 +439,6 @@
       ctx.lineTo((points[i + 1].x + 0.5) * cell, (points[i + 1].y + 0.5) * cell);
       ctx.stroke();
     }
-
-    drawEyes(points[0], cell, crashed);
   }
 
   function drawEyes(head, cell, crashed) {
@@ -493,6 +539,10 @@
 
   speedButtons.forEach((button) => {
     button.addEventListener("click", () => setSpeed(button.dataset.speed));
+  });
+
+  modeButtons.forEach((button) => {
+    button.addEventListener("click", () => setMode(button.dataset.mode));
   });
 
   pauseButton.addEventListener("click", togglePause);
