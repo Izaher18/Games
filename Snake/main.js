@@ -72,6 +72,7 @@
     prevBody = game.body;
     eaten = null;
     effects.length = 0;
+    stage.classList.remove("is-shaking");
     phase = "ready";
     newBest = false;
     update();
@@ -159,6 +160,7 @@
       [523, 659, 784, 1047].forEach((freq, i) => setTimeout(() => beep(freq, 0.12), i * 110));
     } else {
       beep(140, 0.3, "sawtooth");
+      crashEffects();
     }
   }
 
@@ -260,25 +262,38 @@
 
   // Effects are timestamped so an apple's burst can wait for the head to reach it.
   function burst(at, start) {
-    const x = at.x + 0.5;
-    const y = at.y + 0.5;
-    if (!reducedMotion.matches) {
-      for (let i = 0; i < SPARKS; i += 1) {
-        const angle = (i / SPARKS) * Math.PI * 2 + Math.random() * 0.5;
-        const reach = 0.7 + Math.random() * 0.6;
-        effects.push({
-          kind: "spark",
-          x,
-          y,
-          dx: Math.cos(angle) * reach,
-          dy: Math.sin(angle) * reach,
-          color: i % 3 ? COLORS.apple : COLORS.leaf,
-          start,
-          life: 450,
-        });
-      }
+    sparks(at.x + 0.5, at.y + 0.5, [COLORS.apple, COLORS.apple, COLORS.leaf], start);
+    effects.push({ kind: "label", x: at.x + 0.5, y: at.y + 0.5, text: "+1", start, life: 750 });
+  }
+
+  function crashEffects() {
+    const now = performance.now();
+    const head = game.body[0];
+    const { x: dx, y: dy } = Snake.DIRECTIONS[game.direction];
+    sparks(head.x + 0.5 + dx * 0.45, head.y + 0.5 + dy * 0.45, [COLORS.head, COLORS.tail, COLORS.eye], now);
+    effects.push({ kind: "flash", start: now, life: 420 });
+    if (reducedMotion.matches) return;
+    stage.classList.remove("is-shaking");
+    void stage.offsetWidth;
+    stage.classList.add("is-shaking");
+  }
+
+  function sparks(x, y, colors, start) {
+    if (reducedMotion.matches) return;
+    for (let i = 0; i < SPARKS; i += 1) {
+      const angle = (i / SPARKS) * Math.PI * 2 + Math.random() * 0.5;
+      const reach = 0.7 + Math.random() * 0.6;
+      effects.push({
+        kind: "spark",
+        x,
+        y,
+        dx: Math.cos(angle) * reach,
+        dy: Math.sin(angle) * reach,
+        color: colors[i % colors.length],
+        start,
+        life: 450,
+      });
     }
-    effects.push({ kind: "label", x, y, text: "+1", start, life: 750 });
   }
 
   function drawEffects(cell) {
@@ -294,7 +309,10 @@
       const eased = 1 - (1 - age) ** 2;
 
       ctx.save();
-      if (effect.kind === "spark") {
+      if (effect.kind === "flash") {
+        ctx.fillStyle = `rgba(226, 59, 59, ${0.4 * (1 - age)})`;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+      } else if (effect.kind === "spark") {
         ctx.globalAlpha = 1 - age;
         ctx.fillStyle = effect.color;
         ctx.beginPath();

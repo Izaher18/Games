@@ -8,5 +8,6 @@ Classic Snake in plain HTML, CSS and JavaScript. Open `index.html` in a browser 
 - Best scores are saved per speed in the browser.
 - The snake glides smoothly between cells (turned off if your system asks for reduced motion).
 - Eating an apple sets off a burst of sparks and a floating +1.
+- Crashing shakes the board and flashes it red.
 
 `game.js` holds the rules (movement, turning, food, collisions) and `main.js` handles drawing, input and sound.
