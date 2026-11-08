@@ -1,4 +1,15 @@
 (() => {
+  const KEYS = {
+    ArrowUp: "up",
+    KeyW: "up",
+    ArrowDown: "down",
+    KeyS: "down",
+    ArrowLeft: "left",
+    KeyA: "left",
+    ArrowRight: "right",
+    KeyD: "right",
+  };
+
   const cellsEl = document.getElementById("cells");
   const tilesEl = document.getElementById("tiles");
   const statusEl = document.getElementById("status");
@@ -14,6 +25,13 @@
 
   function newGame() {
     game = Game2048.create();
+    render();
+  }
+
+  function play(direction) {
+    const result = Game2048.move(game, direction);
+    if (!result) return;
+    game = result.state;
     render();
   }
 
@@ -33,6 +51,14 @@
     el.style.setProperty("--y", tile.y);
     return el;
   }
+
+  document.addEventListener("keydown", (event) => {
+    if (event.metaKey || event.ctrlKey || event.altKey) return;
+    const direction = KEYS[event.code];
+    if (!direction) return;
+    event.preventDefault();
+    play(direction);
+  });
 
   restartButton.addEventListener("click", newGame);
 
