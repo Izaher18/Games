@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>2048</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <main class="app">
+      <header class="top">
+        <p class="kicker">Puzzle classic</p>
+        <h1>2048</h1>
+        <p class="status" id="status" role="status"></p>
+      </header>
+
+      <div class="board" id="board" role="img" aria-label="2048 board">
+        <div class="cells" id="cells" aria-hidden="true"></div>
+        <div class="tiles" id="tiles" aria-hidden="true"></div>
+      </div>
+
+      <div class="actions">
+        <button class="restart" id="restart" type="button">New game</button>
+      </div>
+    </main>
+    <script src="game.js"></script>
+    <script src="main.js"></script>
+  </body>
+</html>
