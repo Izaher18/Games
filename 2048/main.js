@@ -16,9 +16,15 @@
   const scoreEl = document.getElementById("score");
   const bestEl = document.getElementById("best");
   const restartButton = document.getElementById("restart");
+  const overlay = document.getElementById("overlay");
+  const overlayTitle = document.getElementById("overlay-title");
+  const keepGoingButton = document.getElementById("keep-going");
+  const tryAgainButton = document.getElementById("try-again");
 
   let game;
   let best = Number(localStorage.getItem("2048.best")) || 0;
+  let bestAtStart = best;
+  let celebrating = false;
 
   for (let i = 0; i < Game2048.SIZE * Game2048.SIZE; i += 1) {
     const cell = document.createElement("div");
@@ -28,10 +34,13 @@
 
   function newGame() {
     game = Game2048.create();
+    bestAtStart = best;
+    celebrating = false;
     render();
   }
 
   function play(direction) {
+    if (celebrating) return;
     const result = Game2048.move(game, direction);
     if (!result) return;
     game = result.state;
@@ -39,6 +48,12 @@
       best = game.score;
       localStorage.setItem("2048.best", best);
     }
+    celebrating = result.justWon;
+    render();
+  }
+
+  function keepGoing() {
+    celebrating = false;
     render();
   }
 
@@ -46,7 +61,24 @@
     tilesEl.replaceChildren(...game.tiles.map(tileElement));
     scoreEl.textContent = game.score;
     bestEl.textContent = best;
-    statusEl.textContent = "Join the tiles to reach 2048";
+
+    if (celebrating) {
+      statusEl.textContent = "You reached 2048!";
+    } else if (game.over) {
+      statusEl.textContent = game.score > bestAtStart ? `New best: ${game.score}!` : `Game over, you scored ${game.score}`;
+    } else if (game.won) {
+      statusEl.textContent = "Keep going, how high can you get?";
+    } else {
+      statusEl.textContent = "Join the tiles to reach 2048";
+    }
+
+    const showOverlay = celebrating || game.over;
+    const wasHidden = overlay.hidden;
+    overlay.hidden = !showOverlay;
+    overlay.classList.toggle("is-won", celebrating);
+    overlayTitle.textContent = celebrating ? "You made 2048!" : "No moves left";
+    keepGoingButton.hidden = !celebrating;
+    if (showOverlay && wasHidden) (celebrating ? keepGoingButton : tryAgainButton).focus();
   }
 
   function tileElement(tile) {
@@ -70,6 +102,8 @@
   });
 
   restartButton.addEventListener("click", newGame);
+  tryAgainButton.addEventListener("click", newGame);
+  keepGoingButton.addEventListener("click", keepGoing);
 
   newGame();
 })();

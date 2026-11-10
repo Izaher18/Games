@@ -159,6 +159,44 @@ h1 {
 .tile[data-value="2048"] { background: #edc22e; color: #fff; box-shadow: 0 0 28px rgba(237, 194, 46, 0.6); }
 .tile.is-super { background: #3c3a32; color: #fff; }
 
+.overlay {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  gap: 18px;
+  border-radius: 18px;
+  background: rgba(243, 238, 230, 0.78);
+  backdrop-filter: blur(2px);
+  text-align: center;
+  animation: fade-in 260ms ease-out;
+}
+
+.overlay[hidden] {
+  display: none;
+}
+
+.overlay.is-won {
+  background: rgba(237, 194, 46, 0.55);
+}
+
+.overlay-title {
+  margin: 0;
+  font-size: 9cqw;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+}
+
+.overlay-actions {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+}
+
 .actions {
   display: flex;
   flex-wrap: wrap;
@@ -183,7 +221,28 @@ h1 {
   background: #292524;
 }
 
-.restart:focus-visible {
+.secondary {
+  display: block;
+  margin: 0;
+  padding: 12px 22px;
+  border: 1px solid rgba(28, 25, 23, 0.16);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.6);
+  color: #1c1917;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.secondary:hover {
+  background: #fff;
+}
+
+.secondary[hidden] {
+  display: none;
+}
+
+.restart:focus-visible,
+.secondary:focus-visible {
   outline: 3px solid #1c1917;
   outline-offset: 3px;
 }

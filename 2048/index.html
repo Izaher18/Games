@@ -29,6 +29,13 @@
       <div class="board" id="board" role="img" aria-label="2048 board">
         <div class="cells" id="cells" aria-hidden="true"></div>
         <div class="tiles" id="tiles" aria-hidden="true"></div>
+        <div class="overlay" id="overlay" hidden>
+          <p class="overlay-title" id="overlay-title"></p>
+          <div class="overlay-actions">
+            <button class="secondary" id="keep-going" type="button">Keep going</button>
+            <button class="restart" id="try-again" type="button">New game</button>
+          </div>
+        </div>
       </div>
 
       <div class="actions">
