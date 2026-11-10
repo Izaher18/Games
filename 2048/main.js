@@ -9,6 +9,7 @@
     ArrowRight: "right",
     KeyD: "right",
   };
+  const SLIDE_MS = 110;
 
   const cellsEl = document.getElementById("cells");
   const tilesEl = document.getElementById("tiles");
@@ -25,6 +26,9 @@
   let best = Number(localStorage.getItem("2048.best")) || 0;
   let bestAtStart = best;
   let celebrating = false;
+  // Tiles keep their element across moves so CSS can animate them sliding.
+  const elements = new Map();
+  let settling = null;
 
   for (let i = 0; i < Game2048.SIZE * Game2048.SIZE; i += 1) {
     const cell = document.createElement("div");
@@ -33,9 +37,13 @@
   }
 
   function newGame() {
+    settle();
     game = Game2048.create();
     bestAtStart = best;
     celebrating = false;
+    elements.forEach((el) => el.remove());
+    elements.clear();
+    syncTiles();
     render();
   }
 
@@ -43,13 +51,49 @@
     if (celebrating) return;
     const result = Game2048.move(game, direction);
     if (!result) return;
+    settle();
     game = result.state;
     if (game.score > best) {
       best = game.score;
       localStorage.setItem("2048.best", best);
     }
     celebrating = result.justWon;
+
+    // Slide every old tile (including the pairs that are about to merge) to where
+    // it ends up, then swap in the merged and new tiles once the slide is done.
+    result.moves.forEach(({ id, x, y }) => place(elements.get(id), x, y));
+    settling = setTimeout(settle, SLIDE_MS);
     render();
+  }
+
+  function settle() {
+    if (settling === null) return;
+    clearTimeout(settling);
+    settling = null;
+    syncTiles();
+  }
+
+  function syncTiles() {
+    const ids = new Set(game.tiles.map((tile) => tile.id));
+    elements.forEach((el, id) => {
+      if (ids.has(id)) return;
+      el.remove();
+      elements.delete(id);
+    });
+    game.tiles.forEach((tile) => {
+      if (elements.has(tile.id)) {
+        place(elements.get(tile.id), tile.x, tile.y);
+        return;
+      }
+      const el = tileElement(tile);
+      elements.set(tile.id, el);
+      tilesEl.append(el);
+    });
+  }
+
+  function place(el, x, y) {
+    el.style.setProperty("--x", x);
+    el.style.setProperty("--y", y);
   }
 
   function keepGoing() {
@@ -58,7 +102,6 @@
   }
 
   function render() {
-    tilesEl.replaceChildren(...game.tiles.map(tileElement));
     scoreEl.textContent = game.score;
     bestEl.textContent = best;
 
@@ -88,8 +131,7 @@
     el.dataset.value = tile.value;
     el.dataset.digits = String(tile.value).length;
     el.classList.toggle("is-super", tile.value > Game2048.WIN);
-    el.style.setProperty("--x", tile.x);
-    el.style.setProperty("--y", tile.y);
+    place(el, tile.x, tile.y);
     return el;
   }
 

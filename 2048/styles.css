@@ -135,6 +135,7 @@ h1 {
   height: 21.25cqw;
   border-radius: 2.4cqw;
   transform: translate(calc(var(--x) * 24.25cqw), calc(var(--y) * 24.25cqw));
+  transition: transform 110ms ease-in-out;
   background: #f4ece0;
   color: #5b4636;
   font-size: 11cqw;
@@ -245,6 +246,12 @@ h1 {
 .secondary:focus-visible {
   outline: 3px solid #1c1917;
   outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tile {
+    transition: none;
+  }
 }
 
 .help {
