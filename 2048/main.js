@@ -29,6 +29,7 @@
   // Tiles keep their element across moves so CSS can animate them sliding.
   const elements = new Map();
   let settling = null;
+  let mergedIds = new Set();
 
   for (let i = 0; i < Game2048.SIZE * Game2048.SIZE; i += 1) {
     const cell = document.createElement("div");
@@ -62,6 +63,7 @@
     // Slide every old tile (including the pairs that are about to merge) to where
     // it ends up, then swap in the merged and new tiles once the slide is done.
     result.moves.forEach(({ id, x, y }) => place(elements.get(id), x, y));
+    mergedIds = new Set(result.merges.map(({ tile }) => tile.id));
     settling = setTimeout(settle, SLIDE_MS);
     render();
   }
@@ -86,9 +88,11 @@
         return;
       }
       const el = tileElement(tile);
+      el.classList.add(mergedIds.has(tile.id) ? "is-merged" : "is-new");
       elements.set(tile.id, el);
       tilesEl.append(el);
     });
+    mergedIds = new Set();
   }
 
   function place(el, x, y) {

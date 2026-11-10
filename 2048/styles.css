@@ -134,8 +134,8 @@ h1 {
   width: 21.25cqw;
   height: 21.25cqw;
   border-radius: 2.4cqw;
-  transform: translate(calc(var(--x) * 24.25cqw), calc(var(--y) * 24.25cqw));
-  transition: transform 110ms ease-in-out;
+  translate: calc(var(--x) * 24.25cqw) calc(var(--y) * 24.25cqw);
+  transition: translate 110ms ease-in-out;
   background: #f4ece0;
   color: #5b4636;
   font-size: 11cqw;
@@ -248,9 +248,38 @@ h1 {
   outline-offset: 3px;
 }
 
+/* Tiles are positioned with `translate`, which applies after `scale`, so a tile
+   grows around its own center instead of drifting away from its cell. */
+.tile.is-new {
+  animation: appear 180ms ease-out;
+}
+
+.tile.is-merged {
+  z-index: 1;
+  animation: pop 200ms ease-out;
+}
+
+@keyframes appear {
+  from {
+    opacity: 0;
+    scale: 0.2;
+  }
+}
+
+@keyframes pop {
+  45% {
+    scale: 1.18;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .tile {
     transition: none;
+  }
+
+  .tile.is-new,
+  .tile.is-merged {
+    animation: none;
   }
 }
 
