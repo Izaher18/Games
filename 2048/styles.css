@@ -45,6 +45,46 @@ h1 {
   line-height: 0.95;
 }
 
+.scores {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.score {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px;
+  border: 1px solid rgba(28, 25, 23, 0.06);
+  border-radius: 999px;
+  background: #fff;
+  box-shadow: 0 8px 18px rgba(40, 30, 10, 0.06);
+}
+
+.tally {
+  min-width: 2ch;
+  font-variant-numeric: tabular-nums;
+  font-weight: 750;
+}
+
+.chip {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.15);
+}
+
+.chip.square {
+  border-radius: 5px;
+  background: linear-gradient(160deg, #f8b98a, #f59563 55%, #d9733f);
+}
+
+.chip.crown {
+  background: radial-gradient(circle at 35% 30%, #ffe58a, #f5c518 48%, #c49008);
+}
+
 .status {
   min-height: 1.4em;
   margin: 18px 0 0;

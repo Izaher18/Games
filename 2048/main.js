@@ -13,9 +13,12 @@
   const cellsEl = document.getElementById("cells");
   const tilesEl = document.getElementById("tiles");
   const statusEl = document.getElementById("status");
+  const scoreEl = document.getElementById("score");
+  const bestEl = document.getElementById("best");
   const restartButton = document.getElementById("restart");
 
   let game;
+  let best = Number(localStorage.getItem("2048.best")) || 0;
 
   for (let i = 0; i < Game2048.SIZE * Game2048.SIZE; i += 1) {
     const cell = document.createElement("div");
@@ -32,11 +35,17 @@
     const result = Game2048.move(game, direction);
     if (!result) return;
     game = result.state;
+    if (game.score > best) {
+      best = game.score;
+      localStorage.setItem("2048.best", best);
+    }
     render();
   }
 
   function render() {
     tilesEl.replaceChildren(...game.tiles.map(tileElement));
+    scoreEl.textContent = game.score;
+    bestEl.textContent = best;
     statusEl.textContent = "Join the tiles to reach 2048";
   }
 
