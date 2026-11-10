@@ -53,6 +53,7 @@ h1 {
 }
 
 .score {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -61,6 +62,39 @@ h1 {
   border-radius: 999px;
   background: #fff;
   box-shadow: 0 8px 18px rgba(40, 30, 10, 0.06);
+}
+
+.bump {
+  position: absolute;
+  right: 12px;
+  bottom: 70%;
+  color: #e8743f;
+  font-weight: 800;
+  pointer-events: none;
+  animation: bump 650ms ease-out forwards;
+}
+
+@keyframes bump {
+  from {
+    opacity: 1;
+    translate: 0 0;
+  }
+  to {
+    opacity: 0;
+    translate: 0 -22px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bump {
+    animation-name: fade-out;
+  }
+}
+
+@keyframes fade-out {
+  to {
+    opacity: 0;
+  }
 }
 
 .tally {

@@ -59,6 +59,7 @@
       localStorage.setItem("2048.best", best);
     }
     celebrating = result.justWon;
+    if (result.gained) bump(result.gained);
 
     // Slide every old tile (including the pairs that are about to merge) to where
     // it ends up, then swap in the merged and new tiles once the slide is done.
@@ -66,6 +67,14 @@
     mergedIds = new Set(result.merges.map(({ tile }) => tile.id));
     settling = setTimeout(settle, SLIDE_MS);
     render();
+  }
+
+  function bump(points) {
+    const el = document.createElement("span");
+    el.className = "bump";
+    el.textContent = `+${points}`;
+    el.addEventListener("animationend", () => el.remove());
+    scoreEl.parentElement.append(el);
   }
 
   function settle() {
