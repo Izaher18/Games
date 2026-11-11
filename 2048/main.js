@@ -11,6 +11,7 @@
   };
   const SLIDE_MS = 110;
   const SWIPE_DISTANCE = 24;
+  const UNDO_LIMIT = 50;
 
   const boardEl = document.getElementById("board");
   const helpEl = document.getElementById("help");
@@ -20,12 +21,14 @@
   const scoreEl = document.getElementById("score");
   const bestEl = document.getElementById("best");
   const restartButton = document.getElementById("restart");
+  const undoButton = document.getElementById("undo");
   const overlay = document.getElementById("overlay");
   const overlayTitle = document.getElementById("overlay-title");
   const keepGoingButton = document.getElementById("keep-going");
   const tryAgainButton = document.getElementById("try-again");
 
   let game;
+  let history = [];
   let best = Number(localStorage.getItem("2048.best")) || 0;
   let bestAtStart = best;
   let celebrating = false;
@@ -43,6 +46,7 @@
   function newGame() {
     settle();
     game = Game2048.create();
+    history = [];
     bestAtStart = best;
     celebrating = false;
     elements.forEach((el) => el.remove());
@@ -56,6 +60,8 @@
     const result = Game2048.move(game, direction);
     if (!result) return;
     settle();
+    history.push(game);
+    if (history.length > UNDO_LIMIT) history.shift();
     game = result.state;
     if (game.score > best) {
       best = game.score;
@@ -112,6 +118,15 @@
     el.style.setProperty("--y", y);
   }
 
+  function undo() {
+    if (!history.length) return;
+    settle();
+    game = history.pop();
+    celebrating = false;
+    syncTiles();
+    render();
+  }
+
   function keepGoing() {
     celebrating = false;
     render();
@@ -120,6 +135,7 @@
   function render() {
     scoreEl.textContent = game.score;
     bestEl.textContent = best;
+    undoButton.disabled = !history.length;
 
     if (celebrating) {
       statusEl.textContent = "You reached 2048!";
@@ -153,6 +169,11 @@
 
   document.addEventListener("keydown", (event) => {
     if (event.metaKey || event.ctrlKey || event.altKey) return;
+    if (event.code === "KeyU" || event.code === "Backspace") {
+      event.preventDefault();
+      undo();
+      return;
+    }
     const direction = KEYS[event.code];
     if (!direction) return;
     event.preventDefault();
@@ -183,6 +204,7 @@
   if (window.matchMedia("(pointer: coarse)").matches) helpEl.textContent = "Swipe on the board to slide the tiles";
 
   restartButton.addEventListener("click", newGame);
+  undoButton.addEventListener("click", undo);
   tryAgainButton.addEventListener("click", newGame);
   keepGoingButton.addEventListener("click", keepGoing);
 

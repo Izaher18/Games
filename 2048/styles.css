@@ -278,6 +278,15 @@ h1 {
   display: none;
 }
 
+.secondary:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.secondary:disabled:hover {
+  background: rgba(255, 255, 255, 0.6);
+}
+
 .restart:focus-visible,
 .secondary:focus-visible {
   outline: 3px solid #1c1917;
