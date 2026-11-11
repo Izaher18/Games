@@ -12,6 +12,7 @@
   const SLIDE_MS = 110;
   const SWIPE_DISTANCE = 24;
   const UNDO_LIMIT = 50;
+  const AUTO_MS = 150;
   const ARROWS = {
     up: { symbol: "↑", dx: 0, dy: -1 },
     down: { symbol: "↓", dx: 0, dy: 1 },
@@ -30,6 +31,7 @@
   const undoButton = document.getElementById("undo");
   const hintButton = document.getElementById("hint");
   const hintArrow = document.getElementById("hint-arrow");
+  const autoButton = document.getElementById("auto");
   const overlay = document.getElementById("overlay");
   const overlayTitle = document.getElementById("overlay-title");
   const keepGoingButton = document.getElementById("keep-going");
@@ -41,6 +43,9 @@
   let bestAtStart = best;
   let celebrating = false;
   let hinted = null;
+  let autoTimer = null;
+  // Games the computer helped play don't count toward the best score.
+  let assisted = false;
   // Tiles keep their element across moves so CSS can animate them sliding.
   const elements = new Map();
   let settling = null;
@@ -53,12 +58,14 @@
   }
 
   function newGame() {
+    stopAuto();
     clearHint();
     settle();
     game = Game2048.create();
     history = [];
     bestAtStart = best;
     celebrating = false;
+    assisted = false;
     elements.forEach((el) => el.remove());
     elements.clear();
     syncTiles();
@@ -74,7 +81,7 @@
     history.push(game);
     if (history.length > UNDO_LIMIT) history.shift();
     game = result.state;
-    if (game.score > best) {
+    if (!assisted && game.score > best) {
       best = game.score;
       localStorage.setItem("2048.best", best);
     }
@@ -148,7 +155,37 @@
     hintArrow.classList.remove("is-showing");
   }
 
+  function toggleAuto() {
+    if (autoTimer !== null) {
+      stopAuto();
+      render();
+      return;
+    }
+    if (celebrating || game.over) return;
+    assisted = true;
+    autoStep();
+  }
+
+  function autoStep() {
+    const direction = Game2048AI.bestMove(game);
+    if (direction) play(direction);
+    autoTimer = direction && !celebrating && !game.over ? setTimeout(autoStep, AUTO_MS) : null;
+    render();
+  }
+
+  function stopAuto() {
+    clearTimeout(autoTimer);
+    autoTimer = null;
+  }
+
+  function playByHand(direction) {
+    stopAuto();
+    play(direction);
+    render();
+  }
+
   function undo() {
+    stopAuto();
     if (!history.length) return;
     clearHint();
     settle();
@@ -167,12 +204,18 @@
     scoreEl.textContent = game.score;
     bestEl.textContent = best;
     undoButton.disabled = !history.length;
-    hintButton.disabled = celebrating || game.over;
+    hintButton.disabled = celebrating || game.over || autoTimer !== null;
+    autoButton.disabled = celebrating || game.over;
+    autoButton.setAttribute("aria-pressed", autoTimer !== null);
+    autoButton.textContent = autoTimer !== null ? "Stop" : "Autoplay";
 
     if (celebrating) {
-      statusEl.textContent = "You reached 2048!";
+      statusEl.textContent = assisted ? "The computer reached 2048!" : "You reached 2048!";
     } else if (game.over) {
-      statusEl.textContent = game.score > bestAtStart ? `New best: ${game.score}!` : `Game over, you scored ${game.score}`;
+      if (assisted) statusEl.textContent = `Game over, scored ${game.score} with the computer's help`;
+      else statusEl.textContent = game.score > bestAtStart ? `New best: ${game.score}!` : `Game over, you scored ${game.score}`;
+    } else if (autoTimer !== null) {
+      statusEl.textContent = "The computer is playing";
     } else if (hinted) {
       statusEl.textContent = `Try sliding ${hinted}`;
     } else if (game.won) {
@@ -185,7 +228,8 @@
     const wasHidden = overlay.hidden;
     overlay.hidden = !showOverlay;
     overlay.classList.toggle("is-won", celebrating);
-    overlayTitle.textContent = celebrating ? "You made 2048!" : "No moves left";
+    if (!celebrating) overlayTitle.textContent = "No moves left";
+    else overlayTitle.textContent = assisted ? "The computer made 2048!" : "You made 2048!";
     keepGoingButton.hidden = !celebrating;
     if (showOverlay && wasHidden) (celebrating ? keepGoingButton : tryAgainButton).focus();
   }
@@ -213,10 +257,15 @@
       hint();
       return;
     }
+    if (event.code === "KeyP") {
+      event.preventDefault();
+      toggleAuto();
+      return;
+    }
     const direction = KEYS[event.code];
     if (!direction) return;
     event.preventDefault();
-    play(direction);
+    playByHand(direction);
   });
 
   // Pointer events cover both finger swipes and mouse drags.
@@ -232,8 +281,8 @@
     const dy = event.clientY - swipeStart.y;
     swipeStart = null;
     if (Math.max(Math.abs(dx), Math.abs(dy)) < SWIPE_DISTANCE) return;
-    if (Math.abs(dx) > Math.abs(dy)) play(dx > 0 ? "right" : "left");
-    else play(dy > 0 ? "down" : "up");
+    if (Math.abs(dx) > Math.abs(dy)) playByHand(dx > 0 ? "right" : "left");
+    else playByHand(dy > 0 ? "down" : "up");
   });
 
   document.addEventListener("pointercancel", () => {
@@ -245,6 +294,7 @@
   restartButton.addEventListener("click", newGame);
   undoButton.addEventListener("click", undo);
   hintButton.addEventListener("click", hint);
+  autoButton.addEventListener("click", toggleAuto);
   tryAgainButton.addEventListener("click", newGame);
   keepGoingButton.addEventListener("click", keepGoing);
 

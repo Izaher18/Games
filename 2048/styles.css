@@ -328,6 +328,12 @@ h1 {
   background: #fff;
 }
 
+.secondary[aria-pressed="true"] {
+  border-color: #e8784f;
+  background: #e8784f;
+  color: #fff;
+}
+
 .secondary[hidden] {
   display: none;
 }
