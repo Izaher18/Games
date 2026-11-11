@@ -29,6 +29,7 @@
       <div class="board" id="board" role="img" aria-label="2048 board">
         <div class="cells" id="cells" aria-hidden="true"></div>
         <div class="tiles" id="tiles" aria-hidden="true"></div>
+        <div class="hint" id="hint-arrow" aria-hidden="true"><span class="hint-badge"></span></div>
         <div class="overlay" id="overlay" hidden>
           <p class="overlay-title" id="overlay-title"></p>
           <div class="overlay-actions">
@@ -40,12 +41,14 @@
 
       <div class="actions">
         <button class="secondary" id="undo" type="button">Undo</button>
+        <button class="secondary" id="hint" type="button">Hint</button>
         <button class="restart" id="restart" type="button">New game</button>
       </div>
 
-      <p class="help" id="help">Arrow keys or WASD to slide, or swipe on the board · U to undo</p>
+      <p class="help" id="help">Arrow keys or WASD to slide, or swipe on the board · U to undo · H for a hint</p>
     </main>
     <script src="game.js"></script>
+    <script src="ai.js"></script>
     <script src="main.js"></script>
   </body>
 </html>

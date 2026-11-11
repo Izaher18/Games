@@ -196,6 +196,60 @@ h1 {
 .tile[data-value="2048"] { background: #edc22e; color: #fff; box-shadow: 0 0 28px rgba(237, 194, 46, 0.6); }
 .tile.is-super { background: #3c3a32; color: #fff; }
 
+.hint {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+  opacity: 0;
+}
+
+.hint-badge {
+  display: grid;
+  place-items: center;
+  width: 30cqw;
+  height: 30cqw;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.88);
+  box-shadow: 0 10px 30px rgba(40, 30, 10, 0.25);
+  color: #1c1917;
+  font-size: 18cqw;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.hint.is-showing {
+  animation: hint 1300ms ease-in-out;
+}
+
+/* --dx and --dy point the nudge the way the hint says to slide. */
+@keyframes hint {
+  0% {
+    opacity: 0;
+    translate: 0 0;
+  }
+  20%,
+  70% {
+    opacity: 1;
+  }
+  45% {
+    translate: calc(var(--dx) * 5cqw) calc(var(--dy) * 5cqw);
+  }
+  100% {
+    opacity: 0;
+    translate: 0 0;
+  }
+}
+
+@keyframes hint-still {
+  20%,
+  70% {
+    opacity: 1;
+  }
+}
+
 .overlay {
   position: absolute;
   inset: 0;
@@ -325,6 +379,10 @@ h1 {
   .tile.is-new,
   .tile.is-merged {
     animation: none;
+  }
+
+  .hint.is-showing {
+    animation-name: hint-still;
   }
 }
 

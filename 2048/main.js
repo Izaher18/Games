@@ -12,6 +12,12 @@
   const SLIDE_MS = 110;
   const SWIPE_DISTANCE = 24;
   const UNDO_LIMIT = 50;
+  const ARROWS = {
+    up: { symbol: "↑", dx: 0, dy: -1 },
+    down: { symbol: "↓", dx: 0, dy: 1 },
+    left: { symbol: "←", dx: -1, dy: 0 },
+    right: { symbol: "→", dx: 1, dy: 0 },
+  };
 
   const boardEl = document.getElementById("board");
   const helpEl = document.getElementById("help");
@@ -22,6 +28,8 @@
   const bestEl = document.getElementById("best");
   const restartButton = document.getElementById("restart");
   const undoButton = document.getElementById("undo");
+  const hintButton = document.getElementById("hint");
+  const hintArrow = document.getElementById("hint-arrow");
   const overlay = document.getElementById("overlay");
   const overlayTitle = document.getElementById("overlay-title");
   const keepGoingButton = document.getElementById("keep-going");
@@ -32,6 +40,7 @@
   let best = Number(localStorage.getItem("2048.best")) || 0;
   let bestAtStart = best;
   let celebrating = false;
+  let hinted = null;
   // Tiles keep their element across moves so CSS can animate them sliding.
   const elements = new Map();
   let settling = null;
@@ -44,6 +53,7 @@
   }
 
   function newGame() {
+    clearHint();
     settle();
     game = Game2048.create();
     history = [];
@@ -59,6 +69,7 @@
     if (celebrating) return;
     const result = Game2048.move(game, direction);
     if (!result) return;
+    clearHint();
     settle();
     history.push(game);
     if (history.length > UNDO_LIMIT) history.shift();
@@ -118,8 +129,28 @@
     el.style.setProperty("--y", y);
   }
 
+  function hint() {
+    if (celebrating || game.over) return;
+    hinted = Game2048AI.bestMove(game);
+    if (!hinted) return;
+    const arrow = ARROWS[hinted];
+    hintArrow.firstElementChild.textContent = arrow.symbol;
+    hintArrow.style.setProperty("--dx", arrow.dx);
+    hintArrow.style.setProperty("--dy", arrow.dy);
+    hintArrow.classList.remove("is-showing");
+    void hintArrow.offsetWidth;
+    hintArrow.classList.add("is-showing");
+    render();
+  }
+
+  function clearHint() {
+    hinted = null;
+    hintArrow.classList.remove("is-showing");
+  }
+
   function undo() {
     if (!history.length) return;
+    clearHint();
     settle();
     game = history.pop();
     celebrating = false;
@@ -136,11 +167,14 @@
     scoreEl.textContent = game.score;
     bestEl.textContent = best;
     undoButton.disabled = !history.length;
+    hintButton.disabled = celebrating || game.over;
 
     if (celebrating) {
       statusEl.textContent = "You reached 2048!";
     } else if (game.over) {
       statusEl.textContent = game.score > bestAtStart ? `New best: ${game.score}!` : `Game over, you scored ${game.score}`;
+    } else if (hinted) {
+      statusEl.textContent = `Try sliding ${hinted}`;
     } else if (game.won) {
       statusEl.textContent = "Keep going, how high can you get?";
     } else {
@@ -174,6 +208,11 @@
       undo();
       return;
     }
+    if (event.code === "KeyH") {
+      event.preventDefault();
+      hint();
+      return;
+    }
     const direction = KEYS[event.code];
     if (!direction) return;
     event.preventDefault();
@@ -205,6 +244,7 @@
 
   restartButton.addEventListener("click", newGame);
   undoButton.addEventListener("click", undo);
+  hintButton.addEventListener("click", hint);
   tryAgainButton.addEventListener("click", newGame);
   keepGoingButton.addEventListener("click", keepGoing);
 
