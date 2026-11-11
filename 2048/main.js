@@ -10,7 +10,10 @@
     KeyD: "right",
   };
   const SLIDE_MS = 110;
+  const SWIPE_DISTANCE = 24;
 
+  const boardEl = document.getElementById("board");
+  const helpEl = document.getElementById("help");
   const cellsEl = document.getElementById("cells");
   const tilesEl = document.getElementById("tiles");
   const statusEl = document.getElementById("status");
@@ -155,6 +158,29 @@
     event.preventDefault();
     play(direction);
   });
+
+  // Pointer events cover both finger swipes and mouse drags.
+  let swipeStart = null;
+  boardEl.addEventListener("pointerdown", (event) => {
+    if (event.target.closest("button")) return;
+    swipeStart = { x: event.clientX, y: event.clientY, id: event.pointerId };
+  });
+
+  document.addEventListener("pointerup", (event) => {
+    if (!swipeStart || event.pointerId !== swipeStart.id) return;
+    const dx = event.clientX - swipeStart.x;
+    const dy = event.clientY - swipeStart.y;
+    swipeStart = null;
+    if (Math.max(Math.abs(dx), Math.abs(dy)) < SWIPE_DISTANCE) return;
+    if (Math.abs(dx) > Math.abs(dy)) play(dx > 0 ? "right" : "left");
+    else play(dy > 0 ? "down" : "up");
+  });
+
+  document.addEventListener("pointercancel", () => {
+    swipeStart = null;
+  });
+
+  if (window.matchMedia("(pointer: coarse)").matches) helpEl.textContent = "Swipe on the board to slide the tiles";
 
   restartButton.addEventListener("click", newGame);
   tryAgainButton.addEventListener("click", newGame);

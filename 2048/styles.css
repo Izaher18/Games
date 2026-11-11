@@ -139,6 +139,8 @@ h1 {
   box-shadow: 0 16px 28px rgba(60, 45, 20, 0.18);
   container-type: inline-size;
   touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .cells,
