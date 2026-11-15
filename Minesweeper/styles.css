@@ -185,6 +185,10 @@ h1 {
   cursor: default;
 }
 
+.cell.is-open[data-n] {
+  cursor: pointer;
+}
+
 .cell[data-n="1"] { color: #2563eb; }
 .cell[data-n="2"] { color: #15803d; }
 .cell[data-n="3"] { color: #dc2626; }

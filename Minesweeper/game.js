@@ -174,6 +174,35 @@
     return next;
   }
 
+  /**
+   * Opens every unflagged neighbor of a number whose flags already match it.
+   * A flag on the wrong cell sets off that mine.
+   */
+  function chord(state, cell) {
+    if (state.status !== "playing" || !inRange(state, cell)) return null;
+    if (!state.revealed[cell] || state.adjacent[cell] < 1) return null;
+    const around = neighbors(state, cell);
+    let flags = 0;
+    for (let i = 0; i < around.length; i += 1) {
+      if (state.flagged[around[i]]) flags += 1;
+    }
+    if (flags !== state.adjacent[cell]) return null;
+
+    let next = state;
+    const opened = [];
+    for (let i = 0; i < around.length; i += 1) {
+      const neighbor = around[i];
+      if (next.revealed[neighbor] || next.flagged[neighbor]) continue;
+      const result = reveal(next, neighbor);
+      if (!result) continue;
+      next = result.state;
+      for (let n = 0; n < result.opened.length; n += 1) opened.push(result.opened[n]);
+      if (next.status === "lost" || next.status === "won") break;
+    }
+    if (next === state) return null;
+    return { state: next, opened };
+  }
+
   function flagCount(state) {
     let count = 0;
     for (let i = 0; i < state.flagged.length; i += 1) {
@@ -182,5 +211,5 @@
     return count;
   }
 
-  return { LEVELS, create, neighbors, reveal, cycleMark, flagCount, cleared };
+  return { LEVELS, create, neighbors, reveal, cycleMark, chord, flagCount, cleared };
 });

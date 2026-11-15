@@ -75,7 +75,7 @@
   }
 
   function reveal(index) {
-    const result = Minesweeper.reveal(game, index);
+    const result = game.revealed[index] ? Minesweeper.chord(game, index) : Minesweeper.reveal(game, index);
     if (!result) return;
     remember();
     hinted = null;
