@@ -113,6 +113,16 @@ h1 {
   background: radial-gradient(circle at 35% 30%, #6b6560, #1c1917 62%);
 }
 
+.chip.clock {
+  background:
+    radial-gradient(circle at 50% 50%, transparent 0 4px, #1c1917 5px 6px, transparent 7px),
+    radial-gradient(circle at 35% 30%, #fff, #d6d3d1 55%, #a8a29e);
+}
+
+.chip.crown {
+  background: radial-gradient(circle at 35% 30%, #ffe58a, #f5c518 48%, #c49008);
+}
+
 .status {
   min-height: 1.4em;
   margin: 18px 0 0;

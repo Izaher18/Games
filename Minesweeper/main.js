@@ -2,6 +2,8 @@
   const boardEl = document.getElementById("board");
   const statusEl = document.getElementById("status");
   const minesEl = document.getElementById("mines");
+  const timeEl = document.getElementById("time");
+  const bestEl = document.getElementById("best");
   const restartButton = document.getElementById("restart");
   const levelButtons = [...document.querySelectorAll(".mode")];
 
@@ -9,10 +11,19 @@
   if (!Minesweeper.LEVELS[level]) level = "easy";
   let game = Minesweeper.create(level);
   let fresh = new Set();
+  let best = null;
+  let newBest = false;
+  // Seconds already on the clock, plus the moment the current run started.
+  let baseSeconds = 0;
+  let resumedAt = null;
+  let clockId = null;
 
   function newGame() {
     game = Minesweeper.create(level);
     fresh = new Set();
+    best = loadBest();
+    newBest = false;
+    setClock(0, false);
     levelButtons.forEach((button) => {
       const selected = button.dataset.level === level;
       button.classList.toggle("is-selected", selected);
@@ -57,9 +68,65 @@
   function reveal(index) {
     const result = Minesweeper.reveal(game, index);
     if (!result) return;
-    game = result.state;
-    fresh = new Set(result.opened);
+    apply(result.state, result.opened);
+  }
+
+  function apply(next, opened) {
+    const starting = game.status === "ready" && next.status !== "ready";
+    game = next;
+    fresh = new Set(opened || []);
+    if (game.status === "won" || game.status === "lost") {
+      setClock(starting ? 0 : Math.floor(elapsedSeconds()), false);
+      if (game.status === "won") saveBest();
+    } else if (starting) {
+      setClock(0, true);
+    }
     render();
+  }
+
+  function elapsedSeconds() {
+    if (resumedAt === null) return baseSeconds;
+    return baseSeconds + (Date.now() - resumedAt) / 1000;
+  }
+
+  function setClock(seconds, running) {
+    baseSeconds = seconds;
+    resumedAt = running ? Date.now() : null;
+    if (running && clockId === null) clockId = setInterval(paintClock, 200);
+    if (!running && clockId !== null) {
+      clearInterval(clockId);
+      clockId = null;
+    }
+    paintClock();
+  }
+
+  function paintClock() {
+    timeEl.textContent = formatTime(elapsedSeconds());
+  }
+
+  function formatTime(seconds) {
+    const whole = Math.max(0, Math.floor(seconds));
+    const minutes = Math.floor(whole / 60);
+    const remain = whole % 60;
+    return `${minutes}:${String(remain).padStart(2, "0")}`;
+  }
+
+  function loadBest() {
+    const raw = readStorage(`minesweeper.best.${level}`);
+    const stored = Number(raw);
+    if (raw === null || !Number.isFinite(stored) || stored < 0) return null;
+    return stored;
+  }
+
+  function saveBest() {
+    const seconds = Math.floor(elapsedSeconds());
+    if (best !== null && seconds >= best) {
+      newBest = false;
+      return;
+    }
+    writeStorage(`minesweeper.best.${level}`, String(seconds));
+    best = seconds;
+    newBest = true;
   }
 
   function mark(index) {
@@ -74,11 +141,16 @@
     const lost = game.status === "lost";
     const finished = lost || game.status === "won";
     minesEl.textContent = String(game.mines - Minesweeper.flagCount(game));
+    bestEl.textContent = best === null ? "—" : formatTime(best);
+    paintClock();
     const buttons = boardEl.children;
     for (let i = 0; i < game.mine.length; i += 1) paint(buttons[i], i, finished);
     fresh = new Set();
 
-    if (game.status === "won") statusEl.textContent = "You cleared the board";
+    if (game.status === "won") {
+      const time = formatTime(elapsedSeconds());
+      statusEl.textContent = newBest ? `New best: ${time}` : `Cleared in ${time}`;
+    }
     else if (lost) statusEl.textContent = "Boom";
     else if (game.status === "playing") statusEl.textContent = "Keep going";
     else statusEl.textContent = "Clear every cell except the mines";
