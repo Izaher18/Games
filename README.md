@@ -5,3 +5,4 @@ Small browser games I created in plain HTML, CSS and JavaScript. Open a game's `
 - [Connect4](Connect4/): Connect Four against a friend or the computer.
 - [Snake](Snake/): the classic arcade game.
 - [2048](2048/): slide and merge tiles to reach 2048.
+- [Minesweeper](Minesweeper/): clear the board without setting off a mine.

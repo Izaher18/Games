@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Minesweeper</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <main class="app">
+      <header class="top">
+        <p class="kicker">Puzzle classic</p>
+        <h1>Minesweeper</h1>
+        <p class="status" id="status" role="status"></p>
+      </header>
+
+      <div class="stage">
+        <div class="board" id="board" role="grid" aria-label="Minesweeper board"></div>
+      </div>
+
+      <div class="actions">
+        <button class="restart" id="restart" type="button">New game</button>
+      </div>
+
+      <p class="help" id="help">Click a cell to clear it. The first click is always safe.</p>
+    </main>
+    <script src="game.js"></script>
+    <script src="main.js"></script>
+  </body>
+</html>
