@@ -7,6 +7,8 @@
   const restartButton = document.getElementById("restart");
   const undoButton = document.getElementById("undo");
   const hintButton = document.getElementById("hint");
+  const flagModeButton = document.getElementById("flag-mode");
+  const helpEl = document.getElementById("help");
   const levelButtons = [...document.querySelectorAll(".mode")];
 
   let level = readStorage("minesweeper.level");
@@ -17,6 +19,12 @@
   let newBest = false;
   let assisted = false;
   let hinted = null;
+  let cursor = 0;
+  let flagMode = false;
+  let suppressClick = false;
+  let press = null;
+  let heldAt = 0;
+  const LONG_PRESS_MS = 450;
   // Seconds already on the clock, plus the moment the current run started.
   let baseSeconds = 0;
   let resumedAt = null;
@@ -32,6 +40,8 @@
     newBest = false;
     assisted = false;
     hinted = null;
+    flagMode = false;
+    cursor = Math.floor(game.height / 2) * game.width + Math.floor(game.width / 2);
     setClock(0, false);
     levelButtons.forEach((button) => {
       const selected = button.dataset.level === level;
@@ -197,12 +207,14 @@
     const finished = lost || game.status === "won";
     undoButton.disabled = history.length === 0;
     hintButton.disabled = game.status === "won" || game.status === "lost";
+    flagModeButton.setAttribute("aria-pressed", String(flagMode));
     minesEl.textContent = String(game.mines - Minesweeper.flagCount(game));
     bestEl.textContent = best === null ? "—" : formatTime(best);
     paintClock();
     const buttons = boardEl.children;
     for (let i = 0; i < game.mine.length; i += 1) {
       paint(buttons[i], i, finished);
+      if (i === cursor) buttons[i].classList.add("is-cursor");
       if (!hinted || hinted.index !== i) continue;
       buttons[i].classList.add("is-hint");
       buttons[i].setAttribute("aria-label", `${buttons[i].getAttribute("aria-label")}, hint`);
@@ -216,7 +228,8 @@
     } else if (lost) statusEl.textContent = "Boom";
     else if (hinted) {
       statusEl.textContent = hinted.certain ? "This cell is safe" : "No sure cell. This one looks safest";
-    } else if (game.status === "playing") statusEl.textContent = "Keep going";
+    } else if (flagMode) statusEl.textContent = "Next click plants a flag";
+    else if (game.status === "playing") statusEl.textContent = "Keep going";
     else statusEl.textContent = "Clear every cell except the mines";
   }
 
@@ -287,17 +300,69 @@
     return mine;
   }
 
+  function pick(index) {
+    cursor = index;
+    if (flagMode) mark(index);
+    else reveal(index);
+  }
+
   boardEl.addEventListener("click", (event) => {
     const cell = event.target.closest(".cell");
     if (!cell) return;
-    reveal(Number(cell.dataset.index));
+    if (suppressClick) {
+      suppressClick = false;
+      return;
+    }
+    pick(Number(cell.dataset.index));
   });
+
+  boardEl.addEventListener("pointerdown", (event) => {
+    if (event.button !== 0) return;
+    const cell = event.target.closest(".cell");
+    if (!cell) return;
+    const index = Number(cell.dataset.index);
+    press = {
+      index,
+      x: event.clientX,
+      y: event.clientY,
+      timer: setTimeout(() => {
+        // A phone may also fire contextmenu for the same hold. One mark is enough.
+        suppressClick = true;
+        markHeld(index);
+      }, LONG_PRESS_MS),
+    };
+  });
+
+  boardEl.addEventListener("pointermove", (event) => {
+    if (!press) return;
+    const moved = Math.hypot(event.clientX - press.x, event.clientY - press.y);
+    if (moved < 10) return;
+    clearTimeout(press.timer);
+    press = null;
+  });
+
+  function endPress() {
+    if (!press) return;
+    clearTimeout(press.timer);
+    press = null;
+  }
+
+  boardEl.addEventListener("pointerup", endPress);
+  boardEl.addEventListener("pointercancel", endPress);
+
+  function markHeld(index) {
+    const now = Date.now();
+    if (now - heldAt < 700) return;
+    heldAt = now;
+    mark(index);
+  }
 
   boardEl.addEventListener("contextmenu", (event) => {
     const cell = event.target.closest(".cell");
     if (!cell) return;
     event.preventDefault();
-    mark(Number(cell.dataset.index));
+    if (event.pointerType === "touch") suppressClick = true;
+    markHeld(Number(cell.dataset.index));
   });
 
   function showHint() {
@@ -310,20 +375,51 @@
     render();
   }
 
+  function moveCursor(dx, dy) {
+    const x = Math.max(0, Math.min(game.width - 1, (cursor % game.width) + dx));
+    const y = Math.max(0, Math.min(game.height - 1, Math.floor(cursor / game.width) + dy));
+    cursor = y * game.width + x;
+    render();
+    boardEl.children[cursor].scrollIntoView({ block: "nearest", inline: "nearest" });
+  }
+
   document.addEventListener("keydown", (event) => {
     if (event.metaKey || event.ctrlKey || event.altKey) return;
+    const typing = event.target.closest("button") && !event.target.closest("#board");
     if (event.code === "KeyH") {
       event.preventDefault();
       showHint();
       return;
     }
-    if (event.code !== "KeyU" && event.code !== "Backspace") return;
+    if (event.code === "KeyU" || event.code === "Backspace") {
+      event.preventDefault();
+      undo();
+      return;
+    }
+    if (event.code === "KeyF") {
+      event.preventDefault();
+      mark(cursor);
+      return;
+    }
+    if (event.code === "ArrowUp") moveCursor(0, -1);
+    else if (event.code === "ArrowDown") moveCursor(0, 1);
+    else if (event.code === "ArrowLeft") moveCursor(-1, 0);
+    else if (event.code === "ArrowRight") moveCursor(1, 0);
+    else if (!typing && (event.code === "Enter" || event.code === "Space")) pick(cursor);
+    else return;
     event.preventDefault();
-    undo();
   });
+
+  if (window.matchMedia("(pointer: coarse)").matches) {
+    helpEl.textContent = "Tap to clear. Long-press, or turn on Flag, to mark a cell. Tap a number once its flags match.";
+  }
 
   undoButton.addEventListener("click", undo);
   hintButton.addEventListener("click", showHint);
+  flagModeButton.addEventListener("click", () => {
+    flagMode = !flagMode;
+    render();
+  });
   restartButton.addEventListener("click", newGame);
   levelButtons.forEach((button) => {
     button.addEventListener("click", () => {

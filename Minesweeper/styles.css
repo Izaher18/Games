@@ -171,7 +171,14 @@ h1 {
   line-height: 1;
   font-variant-numeric: tabular-nums;
   cursor: pointer;
+  touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
+}
+
+.cell.is-cursor {
+  z-index: 1;
+  outline: 2px solid #1c1917;
+  outline-offset: -3px;
 }
 
 .cell:active:not(.is-open) {
@@ -325,6 +332,12 @@ h1 {
 
 .secondary:disabled:hover {
   background: rgba(255, 255, 255, 0.6);
+}
+
+.secondary[aria-pressed="true"] {
+  border-color: #3f7d46;
+  background: #3f7d46;
+  color: #fff;
 }
 
 .restart:focus-visible,
