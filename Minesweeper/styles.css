@@ -80,10 +80,80 @@ h1 {
 
 .scores {
   display: flex;
+  flex-wrap: wrap;
+  align-items: center;
   justify-content: center;
   gap: 10px;
   margin-top: 18px;
 }
+
+.face {
+  position: relative;
+  width: 52px;
+  height: 52px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #ffe58a, #f5c518 55%, #c49008);
+  box-shadow:
+    inset 0 -3px 0 rgba(0, 0, 0, 0.12),
+    0 8px 16px rgba(40, 30, 10, 0.12);
+  cursor: pointer;
+}
+
+.face:focus-visible {
+  outline: 3px solid #1c1917;
+  outline-offset: 3px;
+}
+
+.eye {
+  position: absolute;
+  top: 16px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #1c1917;
+}
+
+.eye.left { left: 15px; }
+.eye.right { right: 15px; }
+
+.mouth {
+  position: absolute;
+  left: 15px;
+  right: 15px;
+  top: 28px;
+  height: 12px;
+  border-bottom: 3px solid #1c1917;
+  border-radius: 0 0 14px 14px;
+}
+
+.face[data-mood="down"] .mouth {
+  top: 30px;
+  left: 20px;
+  right: 20px;
+  height: 8px;
+  border: 0;
+  border-radius: 50%;
+  background: #1c1917;
+}
+
+.face[data-mood="lost"] .mouth {
+  top: 32px;
+  border-bottom: 0;
+  border-top: 3px solid #1c1917;
+  border-radius: 14px 14px 0 0;
+}
+
+.face[data-mood="won"] .eye {
+  height: 8px;
+  border-radius: 0;
+  background: transparent;
+  border-top: 3px solid #1c1917;
+}
+
+.face[data-mood="won"] .eye.left { rotate: -18deg; }
+.face[data-mood="won"] .eye.right { rotate: 18deg; }
 
 .score {
   display: flex;
@@ -135,6 +205,20 @@ h1 {
   margin-top: 20px;
   overflow-x: auto;
   padding-bottom: 6px;
+}
+
+.stage.is-shaking {
+  animation: shake 380ms ease-out;
+}
+
+@keyframes shake {
+  0%,
+  100% { transform: translateX(0); }
+  15% { transform: translateX(-8px); }
+  30% { transform: translateX(7px); }
+  45% { transform: translateX(-5px); }
+  60% { transform: translateX(3px); }
+  80% { transform: translateX(-2px); }
 }
 
 .board {
@@ -355,7 +439,8 @@ h1 {
 
 @media (prefers-reduced-motion: reduce) {
   .cell.is-fresh,
-  .cell.is-hint {
+  .cell.is-hint,
+  .stage.is-shaking {
     animation: none;
   }
 }

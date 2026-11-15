@@ -1,5 +1,7 @@
 (() => {
   const boardEl = document.getElementById("board");
+  const stageEl = document.getElementById("stage");
+  const faceEl = document.getElementById("face");
   const statusEl = document.getElementById("status");
   const minesEl = document.getElementById("mines");
   const timeEl = document.getElementById("time");
@@ -43,6 +45,7 @@
     flagMode = false;
     cursor = Math.floor(game.height / 2) * game.width + Math.floor(game.width / 2);
     setClock(0, false);
+    stageEl.classList.remove("is-shaking");
     levelButtons.forEach((button) => {
       const selected = button.dataset.level === level;
       button.classList.toggle("is-selected", selected);
@@ -127,11 +130,13 @@
       }
     }
     setClock(snap.seconds, snap.running);
+    stageEl.classList.remove("is-shaking");
     render();
   }
 
   function apply(next, opened) {
     const starting = game.status === "ready" && next.status !== "ready";
+    const blewUp = next.status === "lost" && game.status !== "lost";
     game = next;
     fresh = new Set(opened || []);
     if (game.status === "won" || game.status === "lost") {
@@ -140,7 +145,20 @@
     } else if (starting) {
       setClock(0, true);
     }
+    if (blewUp) {
+      stageEl.classList.remove("is-shaking");
+      void stageEl.offsetWidth;
+      stageEl.classList.add("is-shaking");
+    }
     render();
+  }
+
+  function paintFace(down) {
+    if (down) faceEl.dataset.mood = "down";
+    else if (game.status === "lost") faceEl.dataset.mood = "lost";
+    else if (game.status === "won") faceEl.dataset.mood = "won";
+    else if (game.status === "playing") faceEl.dataset.mood = "play";
+    else faceEl.dataset.mood = "ready";
   }
 
   function elapsedSeconds() {
@@ -231,6 +249,7 @@
     } else if (flagMode) statusEl.textContent = "Next click plants a flag";
     else if (game.status === "playing") statusEl.textContent = "Keep going";
     else statusEl.textContent = "Clear every cell except the mines";
+    paintFace(false);
   }
 
   function paint(button, i, finished) {
@@ -321,6 +340,7 @@
     const cell = event.target.closest(".cell");
     if (!cell) return;
     const index = Number(cell.dataset.index);
+    paintFace(true);
     press = {
       index,
       x: event.clientX,
@@ -342,13 +362,14 @@
   });
 
   function endPress() {
+    paintFace(false);
     if (!press) return;
     clearTimeout(press.timer);
     press = null;
   }
 
-  boardEl.addEventListener("pointerup", endPress);
-  boardEl.addEventListener("pointercancel", endPress);
+  document.addEventListener("pointerup", endPress);
+  document.addEventListener("pointercancel", endPress);
 
   function markHeld(index) {
     const now = Date.now();
@@ -420,6 +441,7 @@
     flagMode = !flagMode;
     render();
   });
+  faceEl.addEventListener("click", newGame);
   restartButton.addEventListener("click", newGame);
   levelButtons.forEach((button) => {
     button.addEventListener("click", () => {
