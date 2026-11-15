@@ -22,6 +22,7 @@
   let assisted = false;
   let hinted = null;
   let cursor = 0;
+  let keyboard = false;
   let flagMode = false;
   let suppressClick = false;
   let press = null;
@@ -43,6 +44,7 @@
     assisted = false;
     hinted = null;
     flagMode = false;
+    keyboard = false;
     cursor = Math.floor(game.height / 2) * game.width + Math.floor(game.width / 2);
     setClock(0, false);
     stageEl.classList.remove("is-shaking");
@@ -232,7 +234,7 @@
     const buttons = boardEl.children;
     for (let i = 0; i < game.mine.length; i += 1) {
       paint(buttons[i], i, finished);
-      if (i === cursor) buttons[i].classList.add("is-cursor");
+      if (keyboard && i === cursor) buttons[i].classList.add("is-cursor");
       if (!hinted || hinted.index !== i) continue;
       buttons[i].classList.add("is-hint");
       buttons[i].setAttribute("aria-label", `${buttons[i].getAttribute("aria-label")}, hint`);
@@ -397,6 +399,7 @@
   }
 
   function moveCursor(dx, dy) {
+    keyboard = true;
     const x = Math.max(0, Math.min(game.width - 1, (cursor % game.width) + dx));
     const y = Math.max(0, Math.min(game.height - 1, Math.floor(cursor / game.width) + dy));
     cursor = y * game.width + x;
@@ -419,6 +422,7 @@
     }
     if (event.code === "KeyF") {
       event.preventDefault();
+      keyboard = true;
       mark(cursor);
       return;
     }
@@ -426,7 +430,10 @@
     else if (event.code === "ArrowDown") moveCursor(0, 1);
     else if (event.code === "ArrowLeft") moveCursor(-1, 0);
     else if (event.code === "ArrowRight") moveCursor(1, 0);
-    else if (!typing && (event.code === "Enter" || event.code === "Space")) pick(cursor);
+    else if (!typing && (event.code === "Enter" || event.code === "Space")) {
+      keyboard = true;
+      pick(cursor);
+    }
     else return;
     event.preventDefault();
   });
