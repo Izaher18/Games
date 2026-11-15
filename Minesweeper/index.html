@@ -11,6 +11,13 @@
       <header class="top">
         <p class="kicker">Puzzle classic</p>
         <h1>Minesweeper</h1>
+        <div class="scores">
+          <div class="score">
+            <span class="chip mine"></span>
+            <span>Mines</span>
+            <span class="tally" id="mines">0</span>
+          </div>
+        </div>
         <p class="status" id="status" role="status"></p>
       </header>
 
@@ -22,7 +29,7 @@
         <button class="restart" id="restart" type="button">New game</button>
       </div>
 
-      <p class="help" id="help">Click a cell to clear it. The first click is always safe.</p>
+      <p class="help" id="help">Click to clear a cell. Right-click flags it, then leaves a question mark.</p>
     </main>
     <script src="game.js"></script>
     <script src="main.js"></script>

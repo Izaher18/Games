@@ -1,6 +1,7 @@
 (() => {
   const boardEl = document.getElementById("board");
   const statusEl = document.getElementById("status");
+  const minesEl = document.getElementById("mines");
   const restartButton = document.getElementById("restart");
 
   let game = Minesweeper.create("easy");
@@ -37,10 +38,20 @@
     render();
   }
 
+  function mark(index) {
+    const next = Minesweeper.cycleMark(game, index);
+    if (!next) return;
+    game = next;
+    fresh = new Set();
+    render();
+  }
+
   function render() {
     const lost = game.status === "lost";
+    const finished = lost || game.status === "won";
+    minesEl.textContent = String(game.mines - Minesweeper.flagCount(game));
     const buttons = boardEl.children;
-    for (let i = 0; i < game.mine.length; i += 1) paint(buttons[i], i, lost);
+    for (let i = 0; i < game.mine.length; i += 1) paint(buttons[i], i, finished);
     fresh = new Set();
 
     if (game.status === "won") statusEl.textContent = "You cleared the board";
@@ -49,11 +60,27 @@
     else statusEl.textContent = "Clear every cell except the mines";
   }
 
-  function paint(button, i, lost) {
-    const open = game.revealed[i] || (lost && game.mine[i]);
+  function paint(button, i, finished) {
+    const coveredMine = finished && game.mine[i] && !game.flagged[i];
+    const open = game.revealed[i] || coveredMine;
     button.className = "cell";
     button.replaceChildren();
     delete button.dataset.n;
+
+    if (!open && game.flagged[i]) {
+      button.append(flagIcon());
+      const wrong = finished && !game.mine[i];
+      if (wrong) button.classList.add("is-wrong");
+      button.setAttribute("aria-label", wrong ? "Wrong flag" : "Flag");
+      return;
+    }
+
+    if (!open && game.questioned[i]) {
+      button.textContent = "?";
+      button.classList.add("is-question");
+      button.setAttribute("aria-label", "Question mark");
+      return;
+    }
 
     if (!open) {
       button.setAttribute("aria-label", "Hidden");
@@ -81,6 +108,13 @@
     }
   }
 
+  function flagIcon() {
+    const flag = document.createElement("span");
+    flag.className = "flag";
+    flag.setAttribute("aria-hidden", "true");
+    return flag;
+  }
+
   function mineIcon() {
     const mine = document.createElement("span");
     const cross = document.createElement("span");
@@ -97,6 +131,13 @@
     const cell = event.target.closest(".cell");
     if (!cell) return;
     reveal(Number(cell.dataset.index));
+  });
+
+  boardEl.addEventListener("contextmenu", (event) => {
+    const cell = event.target.closest(".cell");
+    if (!cell) return;
+    event.preventDefault();
+    mark(Number(cell.dataset.index));
   });
 
   restartButton.addEventListener("click", newGame);
