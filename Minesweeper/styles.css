@@ -45,6 +45,39 @@ h1 {
   line-height: 0.95;
 }
 
+.modes {
+  display: flex;
+  justify-content: center;
+  width: fit-content;
+  margin: 18px auto 0;
+  padding: 4px;
+  gap: 4px;
+  border-radius: 999px;
+  background: rgba(28, 25, 23, 0.06);
+}
+
+.mode {
+  border: 0;
+  border-radius: 999px;
+  padding: 8px 16px;
+  background: transparent;
+  color: #78716c;
+  font-size: 0.92rem;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.mode.is-selected {
+  background: #fff;
+  color: #1c1917;
+  box-shadow: 0 6px 14px rgba(40, 30, 10, 0.08);
+}
+
+.mode:focus-visible {
+  outline: 3px solid #1c1917;
+  outline-offset: 2px;
+}
+
 .scores {
   display: flex;
   justify-content: center;
@@ -95,7 +128,7 @@ h1 {
 }
 
 .board {
-  --cell: clamp(22px, calc((min(880px, 100vw) - 64px) / var(--cols)), 42px);
+  --cell: clamp(18px, calc((min(880px, 100vw) - 48px) / var(--cols)), 40px);
   display: grid;
   grid-template-columns: repeat(var(--cols), var(--cell));
   gap: 3px;

@@ -3,15 +3,39 @@
   const statusEl = document.getElementById("status");
   const minesEl = document.getElementById("mines");
   const restartButton = document.getElementById("restart");
+  const levelButtons = [...document.querySelectorAll(".mode")];
 
-  let game = Minesweeper.create("easy");
+  let level = readStorage("minesweeper.level");
+  if (!Minesweeper.LEVELS[level]) level = "easy";
+  let game = Minesweeper.create(level);
   let fresh = new Set();
 
   function newGame() {
-    game = Minesweeper.create("easy");
+    game = Minesweeper.create(level);
     fresh = new Set();
+    levelButtons.forEach((button) => {
+      const selected = button.dataset.level === level;
+      button.classList.toggle("is-selected", selected);
+      button.setAttribute("aria-pressed", String(selected));
+    });
     build();
     render();
+  }
+
+  function readStorage(key) {
+    try {
+      return localStorage.getItem(key);
+    } catch (error) {
+      return null;
+    }
+  }
+
+  function writeStorage(key, value) {
+    try {
+      localStorage.setItem(key, value);
+    } catch (error) {
+      // Private browsing can reject storage. The game still plays.
+    }
   }
 
   function build() {
@@ -141,5 +165,13 @@
   });
 
   restartButton.addEventListener("click", newGame);
+  levelButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      if (button.dataset.level === level) return;
+      level = button.dataset.level;
+      writeStorage("minesweeper.level", level);
+      newGame();
+    });
+  });
   newGame();
 })();
