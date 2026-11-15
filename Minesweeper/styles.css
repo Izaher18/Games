@@ -287,7 +287,33 @@ h1 {
   background: #292524;
 }
 
-.restart:focus-visible {
+.secondary {
+  display: block;
+  margin: 0;
+  padding: 12px 22px;
+  border: 1px solid rgba(28, 25, 23, 0.16);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.6);
+  color: #1c1917;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.secondary:hover {
+  background: #fff;
+}
+
+.secondary:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.secondary:disabled:hover {
+  background: rgba(255, 255, 255, 0.6);
+}
+
+.restart:focus-visible,
+.secondary:focus-visible {
   outline: 3px solid #1c1917;
   outline-offset: 3px;
 }

@@ -5,6 +5,7 @@
   const timeEl = document.getElementById("time");
   const bestEl = document.getElementById("best");
   const restartButton = document.getElementById("restart");
+  const undoButton = document.getElementById("undo");
   const levelButtons = [...document.querySelectorAll(".mode")];
 
   let level = readStorage("minesweeper.level");
@@ -17,10 +18,13 @@
   let baseSeconds = 0;
   let resumedAt = null;
   let clockId = null;
+  const UNDO_LIMIT = 50;
+  let history = [];
 
   function newGame() {
     game = Minesweeper.create(level);
     fresh = new Set();
+    history = [];
     best = loadBest();
     newBest = false;
     setClock(0, false);
@@ -68,7 +72,42 @@
   function reveal(index) {
     const result = Minesweeper.reveal(game, index);
     if (!result) return;
+    remember();
     apply(result.state, result.opened);
+  }
+
+  function remember() {
+    history.push({
+      state: game,
+      seconds: elapsedSeconds(),
+      running: resumedAt !== null,
+      best,
+      newBest,
+    });
+    if (history.length > UNDO_LIMIT) history.shift();
+  }
+
+  function undo() {
+    const snap = history.pop();
+    if (!snap) return;
+    game = snap.state;
+    fresh = new Set();
+    newBest = snap.newBest;
+    if (best !== snap.best) {
+      best = snap.best;
+      const key = `minesweeper.best.${level}`;
+      if (best === null) {
+        try {
+          localStorage.removeItem(key);
+        } catch (error) {
+          // The in-memory best is already restored.
+        }
+      } else {
+        writeStorage(key, String(best));
+      }
+    }
+    setClock(snap.seconds, snap.running);
+    render();
   }
 
   function apply(next, opened) {
@@ -132,6 +171,7 @@
   function mark(index) {
     const next = Minesweeper.cycleMark(game, index);
     if (!next) return;
+    remember();
     game = next;
     fresh = new Set();
     render();
@@ -140,6 +180,7 @@
   function render() {
     const lost = game.status === "lost";
     const finished = lost || game.status === "won";
+    undoButton.disabled = history.length === 0;
     minesEl.textContent = String(game.mines - Minesweeper.flagCount(game));
     bestEl.textContent = best === null ? "—" : formatTime(best);
     paintClock();
@@ -236,6 +277,14 @@
     mark(Number(cell.dataset.index));
   });
 
+  document.addEventListener("keydown", (event) => {
+    if (event.metaKey || event.ctrlKey || event.altKey) return;
+    if (event.code !== "KeyU" && event.code !== "Backspace") return;
+    event.preventDefault();
+    undo();
+  });
+
+  undoButton.addEventListener("click", undo);
   restartButton.addEventListener("click", newGame);
   levelButtons.forEach((button) => {
     button.addEventListener("click", () => {
