@@ -6,6 +6,7 @@
   const bestEl = document.getElementById("best");
   const restartButton = document.getElementById("restart");
   const undoButton = document.getElementById("undo");
+  const hintButton = document.getElementById("hint");
   const levelButtons = [...document.querySelectorAll(".mode")];
 
   let level = readStorage("minesweeper.level");
@@ -14,6 +15,8 @@
   let fresh = new Set();
   let best = null;
   let newBest = false;
+  let assisted = false;
+  let hinted = null;
   // Seconds already on the clock, plus the moment the current run started.
   let baseSeconds = 0;
   let resumedAt = null;
@@ -27,6 +30,8 @@
     history = [];
     best = loadBest();
     newBest = false;
+    assisted = false;
+    hinted = null;
     setClock(0, false);
     levelButtons.forEach((button) => {
       const selected = button.dataset.level === level;
@@ -73,6 +78,7 @@
     const result = Minesweeper.reveal(game, index);
     if (!result) return;
     remember();
+    hinted = null;
     apply(result.state, result.opened);
   }
 
@@ -83,6 +89,8 @@
       running: resumedAt !== null,
       best,
       newBest,
+      assisted,
+      hinted,
     });
     if (history.length > UNDO_LIMIT) history.shift();
   }
@@ -93,6 +101,8 @@
     game = snap.state;
     fresh = new Set();
     newBest = snap.newBest;
+    assisted = snap.assisted;
+    hinted = snap.hinted;
     if (best !== snap.best) {
       best = snap.best;
       const key = `minesweeper.best.${level}`;
@@ -158,6 +168,10 @@
   }
 
   function saveBest() {
+    if (assisted) {
+      newBest = false;
+      return;
+    }
     const seconds = Math.floor(elapsedSeconds());
     if (best !== null && seconds >= best) {
       newBest = false;
@@ -172,6 +186,7 @@
     const next = Minesweeper.cycleMark(game, index);
     if (!next) return;
     remember();
+    hinted = null;
     game = next;
     fresh = new Set();
     render();
@@ -181,19 +196,27 @@
     const lost = game.status === "lost";
     const finished = lost || game.status === "won";
     undoButton.disabled = history.length === 0;
+    hintButton.disabled = game.status === "won" || game.status === "lost";
     minesEl.textContent = String(game.mines - Minesweeper.flagCount(game));
     bestEl.textContent = best === null ? "—" : formatTime(best);
     paintClock();
     const buttons = boardEl.children;
-    for (let i = 0; i < game.mine.length; i += 1) paint(buttons[i], i, finished);
+    for (let i = 0; i < game.mine.length; i += 1) {
+      paint(buttons[i], i, finished);
+      if (!hinted || hinted.index !== i) continue;
+      buttons[i].classList.add("is-hint");
+      buttons[i].setAttribute("aria-label", `${buttons[i].getAttribute("aria-label")}, hint`);
+    }
     fresh = new Set();
 
     if (game.status === "won") {
       const time = formatTime(elapsedSeconds());
-      statusEl.textContent = newBest ? `New best: ${time}` : `Cleared in ${time}`;
-    }
-    else if (lost) statusEl.textContent = "Boom";
-    else if (game.status === "playing") statusEl.textContent = "Keep going";
+      if (assisted) statusEl.textContent = `Cleared in ${time}, with a hint`;
+      else statusEl.textContent = newBest ? `New best: ${time}` : `Cleared in ${time}`;
+    } else if (lost) statusEl.textContent = "Boom";
+    else if (hinted) {
+      statusEl.textContent = hinted.certain ? "This cell is safe" : "No sure cell. This one looks safest";
+    } else if (game.status === "playing") statusEl.textContent = "Keep going";
     else statusEl.textContent = "Clear every cell except the mines";
   }
 
@@ -277,14 +300,30 @@
     mark(Number(cell.dataset.index));
   });
 
+  function showHint() {
+    if (game.status === "won" || game.status === "lost") return;
+    const result = MinesweeperAI.hint(game);
+    if (!result) return;
+    remember();
+    assisted = true;
+    hinted = result;
+    render();
+  }
+
   document.addEventListener("keydown", (event) => {
     if (event.metaKey || event.ctrlKey || event.altKey) return;
+    if (event.code === "KeyH") {
+      event.preventDefault();
+      showHint();
+      return;
+    }
     if (event.code !== "KeyU" && event.code !== "Backspace") return;
     event.preventDefault();
     undo();
   });
 
   undoButton.addEventListener("click", undo);
+  hintButton.addEventListener("click", showHint);
   restartButton.addEventListener("click", newGame);
   levelButtons.forEach((button) => {
     button.addEventListener("click", () => {

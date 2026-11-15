@@ -234,6 +234,17 @@ h1 {
   animation: pop 180ms ease-out;
 }
 
+.cell.is-hint {
+  animation: hint-pulse 900ms ease-in-out 2;
+  box-shadow:
+    inset 0 0 0 2px #e8b423,
+    inset 0 1px 0 rgba(255, 255, 255, 0.75);
+}
+
+@keyframes hint-pulse {
+  50% { filter: brightness(1.12); }
+}
+
 @keyframes pop {
   from { scale: 0.82; }
 }
@@ -326,7 +337,8 @@ h1 {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .cell.is-fresh {
+  .cell.is-fresh,
+  .cell.is-hint {
     animation: none;
   }
 }
