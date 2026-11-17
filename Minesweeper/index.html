@@ -53,6 +53,25 @@
       </div>
 
       <p class="help" id="help">Click to clear, right-click to flag, and click a number once its flags match. Arrows move, Enter clears, F flags, U undoes, H hints.</p>
+
+      <section class="guide" aria-labelledby="guide-title">
+        <h2 id="guide-title">How to play</h2>
+        <p>Clear every cell that is not a mine. The first cell you open is always safe, and if nothing touches it, the empty area around it opens too.</p>
+        <ul>
+          <li>
+            <strong>Numbers</strong> count the mines in the eight cells around them. Use that count to decide which neighbors are safe and which are mines.
+          </li>
+          <li>
+            <strong>Flags</strong> mark a cell you think is a mine. Right-click cycles through a flag, a question mark, and blank. On a phone, long-press, or turn on Flag and tap. The mine counter drops once for each flag.
+          </li>
+          <li>
+            <strong>Opening around a number</strong> works once the flags next to it match the number. Click the number and the other neighbors open. A flag on the wrong cell sets off that mine.
+          </li>
+          <li>
+            <strong>You win</strong> when every safe cell is open. Opening a mine ends the game. The clock starts on your first clear, and your best time is saved for each difficulty. A game you used a hint on does not count.
+          </li>
+        </ul>
+      </section>
     </main>
     <script src="game.js"></script>
     <script src="ai.js"></script>

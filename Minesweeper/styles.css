@@ -437,6 +437,51 @@ h1 {
   text-align: center;
 }
 
+.guide {
+  width: min(100%, 520px);
+  margin: 28px auto 0;
+  padding: 22px 24px 8px;
+  border: 1px solid rgba(28, 25, 23, 0.06);
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 8px 18px rgba(40, 30, 10, 0.06);
+  text-align: left;
+}
+
+.guide h2 {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 750;
+  letter-spacing: -0.03em;
+}
+
+.guide p,
+.guide li {
+  color: #44403c;
+  font-size: 0.95rem;
+  line-height: 1.45;
+}
+
+.guide p {
+  margin: 10px 0 0;
+}
+
+.guide ul {
+  margin: 14px 0 16px;
+  padding: 0;
+  list-style: none;
+}
+
+.guide li {
+  margin: 0;
+  padding: 12px 0;
+  border-top: 1px solid rgba(28, 25, 23, 0.08);
+}
+
+.guide strong {
+  color: #1c1917;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .cell.is-fresh,
   .cell.is-hint,
