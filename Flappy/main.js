@@ -8,6 +8,8 @@
   const canvas = document.getElementById("field");
   const ctx = canvas.getContext("2d");
   const statusEl = document.getElementById("status");
+  const scoreEl = document.getElementById("score");
+  const bestEl = document.getElementById("best");
   const helpEl = document.getElementById("help");
   const restartButton = document.getElementById("restart");
 
@@ -16,11 +18,36 @@
   let carry = 0;
   let overAt = 0;
   let shownStatus = null;
+  let best = Number(readStorage("flappy.best")) || 0;
+  let bestAtStart = best;
 
   function newGame() {
     game = Flappy.create();
     carry = 0;
     overAt = 0;
+    bestAtStart = best;
+  }
+
+  function readStorage(key) {
+    try {
+      return localStorage.getItem(key);
+    } catch (error) {
+      return null;
+    }
+  }
+
+  function writeStorage(key, value) {
+    try {
+      localStorage.setItem(key, value);
+    } catch (error) {
+      // Private browsing can reject storage. The game still plays.
+    }
+  }
+
+  function scored() {
+    if (game.score <= best) return;
+    best = game.score;
+    writeStorage("flappy.best", String(best));
   }
 
   function flap() {
@@ -40,6 +67,7 @@
     carry += elapsed;
     while (carry >= STEP) {
       const events = Flappy.step(game, STEP);
+      if (events.scored) scored();
       if (events.crashed) overAt = now;
       carry -= STEP;
     }
@@ -65,6 +93,21 @@
     game.pipes.forEach(drawPipe);
     drawGround();
     drawBird();
+    if (game.status !== "ready") drawScore();
+  }
+
+  function drawScore() {
+    ctx.save();
+    ctx.font = "800 56px 'Avenir Next', 'Segoe UI', sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "top";
+    ctx.lineJoin = "round";
+    ctx.lineWidth = 8;
+    ctx.strokeStyle = "#1c1917";
+    ctx.fillStyle = "#fff";
+    ctx.strokeText(String(game.score), game.width / 2, 36);
+    ctx.fillText(String(game.score), game.width / 2, 36);
+    ctx.restore();
   }
 
   function drawSky() {
@@ -150,10 +193,14 @@
   }
 
   function renderStatus() {
+    if (scoreEl.textContent !== String(game.score)) scoreEl.textContent = game.score;
+    if (bestEl.textContent !== String(best)) bestEl.textContent = best;
+
     let text;
     if (game.status === "ready") text = "Flap to start";
     else if (game.status === "playing") text = "Fly through the gaps";
-    else text = "Game over";
+    else if (game.score > bestAtStart) text = `New best: ${game.score}!`;
+    else text = `Game over, you scored ${game.score}`;
     if (text === shownStatus) return;
     shownStatus = text;
     statusEl.textContent = text;
@@ -162,7 +209,7 @@
   document.addEventListener("keydown", (event) => {
     if (event.metaKey || event.ctrlKey || event.altKey || event.repeat) return;
     if (event.code !== "Space" && event.code !== "ArrowUp" && event.code !== "KeyW") return;
-    if (event.code === "Space" && event.target.closest("button")) return;
+    if (event.code === "Space" && event.target instanceof Element && event.target.closest("button")) return;
     event.preventDefault();
     flap();
   });
