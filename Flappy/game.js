@@ -1,5 +1,5 @@
 /**
- * Flappy rules, shared by the page and the autopilot.
+ * Flappy rules.
  *
  * Distances are in world pixels on a fixed 400×600 field and times are in
  * seconds. `step` changes the state in place; the page calls it many times a
