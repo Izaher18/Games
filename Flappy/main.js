@@ -88,10 +88,7 @@
   function animateBird(elapsed) {
     const { vy } = game.bird;
     let target = 0;
-    if (game.status !== "ready") {
-      const fall = vy < 0 ? vy / Flappy.FLAP_SPEED : vy / Flappy.MAX_FALL;
-      target = fall < 0 ? -fall * UP_TILT : fall * DOWN_TILT;
-    }
+    if (game.status !== "ready") target = vy < 0 ? UP_TILT : (vy / Flappy.MAX_FALL) * DOWN_TILT;
     tilt += (target - tilt) * Math.min(1, elapsed * TILT_EASE);
 
     // Wings beat fast on the way up, lazily while gliding, and stop once the bird has landed.
