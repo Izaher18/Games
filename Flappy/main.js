@@ -8,6 +8,19 @@
   const UP_TILT = -0.45;
   const DOWN_TILT = 1.35;
   const TILT_EASE = 12;
+  // Background layers slide at a fraction of the pipe speed so they look farther away.
+  const CLOUD_DEPTH = 0.12;
+  const FAR_HILL_DEPTH = 0.25;
+  const NEAR_HILL_DEPTH = 0.5;
+  // Clouds repeat every CLOUD_TILE pixels; each entry is a puff cluster's left edge, height, and size.
+  const CLOUD_TILE = 640;
+  const CLOUDS = [
+    { x: 30, y: 90, size: 1 },
+    { x: 250, y: 150, size: 0.7 },
+    { x: 420, y: 70, size: 1.2 },
+    { x: 560, y: 190, size: 0.8 },
+  ];
+  const STRIPE = 24;
 
   const canvas = document.getElementById("field");
   const ctx = canvas.getContext("2d");
@@ -26,6 +39,8 @@
   let bestAtStart = best;
   let tilt = 0;
   let wingPhase = 0;
+  // How far the scenery has slid. It keeps going between games and stops when the bird crashes.
+  let scroll = 0;
 
   function newGame() {
     game = Flappy.create();
@@ -79,6 +94,7 @@
       if (events.crashed) overAt = now;
       carry -= STEP;
     }
+    if (game.status !== "over") scroll += game.speed * elapsed;
     animateBird(elapsed);
     draw();
     renderStatus();
@@ -111,6 +127,9 @@
     resize();
     ctx.setTransform(canvas.width / Flappy.WIDTH, 0, 0, canvas.height / Flappy.HEIGHT, 0, 0);
     drawSky();
+    drawClouds();
+    drawHills(FAR_HILL_DEPTH, game.floor - 70, 36, "#a7d8a0");
+    drawHills(NEAR_HILL_DEPTH, game.floor - 28, 26, "#7cc576");
     game.pipes.forEach(drawPipe);
     drawGround();
     drawBird();
@@ -139,6 +158,39 @@
     ctx.fillRect(0, 0, game.width, game.floor);
   }
 
+  function drawClouds() {
+    const offset = (scroll * CLOUD_DEPTH) % CLOUD_TILE;
+    ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
+    for (let tile = -offset; tile < game.width; tile += CLOUD_TILE) {
+      CLOUDS.forEach(({ x, y, size }) => {
+        const left = tile + x;
+        if (left > game.width || left + 110 * size < 0) return;
+        ctx.beginPath();
+        ctx.arc(left + 26 * size, y, 22 * size, 0, Math.PI * 2);
+        ctx.arc(left + 56 * size, y - 14 * size, 28 * size, 0, Math.PI * 2);
+        ctx.arc(left + 86 * size, y, 22 * size, 0, Math.PI * 2);
+        ctx.rect(left + 26 * size, y, 60 * size, 22 * size);
+        ctx.fill();
+      });
+    }
+  }
+
+  // Two sine waves of different lengths make a hill line that doesn't visibly repeat.
+  function drawHills(depth, base, height, color) {
+    const offset = scroll * depth;
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.moveTo(0, game.floor);
+    for (let x = 0; x <= game.width; x += 8) {
+      const at = x + offset;
+      const rise = Math.sin(at * 0.011) * 0.6 + Math.sin(at * 0.027 + 1.3) * 0.4;
+      ctx.lineTo(x, base - (rise + 1) * height * 0.5);
+    }
+    ctx.lineTo(game.width, game.floor);
+    ctx.closePath();
+    ctx.fill();
+  }
+
   function drawPipe(pipe) {
     const top = pipe.gapY - game.gap / 2;
     const bottom = pipe.gapY + game.gap / 2;
@@ -164,12 +216,31 @@
   }
 
   function drawGround() {
+    const grass = 14;
     ctx.fillStyle = "#ded895";
     ctx.fillRect(0, game.floor, game.width, game.height - game.floor);
     ctx.fillStyle = "#73bf2e";
-    ctx.fillRect(0, game.floor, game.width, 14);
+    ctx.fillRect(0, game.floor, game.width, grass);
+
+    ctx.fillStyle = "#9be15d";
+    const offset = scroll % STRIPE;
+    for (let x = -offset - STRIPE; x < game.width + STRIPE; x += STRIPE) {
+      ctx.beginPath();
+      ctx.moveTo(x, game.floor + grass);
+      ctx.lineTo(x + STRIPE / 2, game.floor + grass);
+      ctx.lineTo(x + STRIPE / 2 + grass, game.floor);
+      ctx.lineTo(x + grass, game.floor);
+      ctx.closePath();
+      ctx.fill();
+    }
+
     ctx.fillStyle = "#4d7c0f";
-    ctx.fillRect(0, game.floor + 14, game.width, 3);
+    ctx.fillRect(0, game.floor + grass, game.width, 3);
+    ctx.fillStyle = "#c9c27d";
+    for (let x = -(scroll % 40); x < game.width; x += 40) {
+      ctx.fillRect(x + 6, game.floor + 34, 14, 3);
+      ctx.fillRect(x + 26, game.floor + 58, 10, 3);
+    }
   }
 
   function drawBird() {
