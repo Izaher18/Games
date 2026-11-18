@@ -154,6 +154,18 @@
     return events;
   }
 
+  const MEDALS = [
+    { name: "gold", score: 30 },
+    { name: "silver", score: 20 },
+    { name: "bronze", score: 10 },
+  ];
+
+  // The best medal a score earns, or null below the bronze mark.
+  function medal(score) {
+    const earned = MEDALS.find((tier) => score >= tier.score);
+    return earned ? earned.name : null;
+  }
+
   return {
     WIDTH,
     HEIGHT,
@@ -163,9 +175,11 @@
     GRAVITY,
     FLAP_SPEED,
     MAX_FALL,
+    MEDALS,
     create,
     flap,
     step,
     hitsPipe,
+    medal,
   };
 });

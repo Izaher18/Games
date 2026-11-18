@@ -21,6 +21,12 @@
     { x: 560, y: 190, size: 0.8 },
   ];
   const STRIPE = 24;
+  const MEDAL_COLORS = {
+    bronze: { rim: "#92400e", face: "#d6925a", shine: "#f3c9a1" },
+    silver: { rim: "#57534e", face: "#d6d3d1", shine: "#fafaf9" },
+    gold: { rim: "#a16207", face: "#facc15", shine: "#fef08a" },
+  };
+  const PANEL_SLIDE = 0.35;
 
   const canvas = document.getElementById("field");
   const ctx = canvas.getContext("2d");
@@ -41,6 +47,7 @@
   let wingPhase = 0;
   // How far the scenery has slid. It keeps going between games and stops when the bird crashes.
   let scroll = 0;
+  let clock = 0;
 
   function newGame() {
     game = Flappy.create();
@@ -87,6 +94,7 @@
   function frame(now) {
     const elapsed = lastTime === null ? 0 : Math.min(MAX_FRAME, (now - lastTime) / 1000);
     lastTime = now;
+    clock = now;
     carry += elapsed;
     while (carry >= STEP) {
       const events = Flappy.step(game, STEP);
@@ -133,7 +141,120 @@
     game.pipes.forEach(drawPipe);
     drawGround();
     drawBird();
-    if (game.status !== "ready") drawScore();
+    if (game.status === "over" && game.landed) drawPanel();
+    else if (game.status !== "ready") drawScore();
+  }
+
+  function roundedRect(x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+  }
+
+  function drawMedal(cx, cy, name) {
+    const { rim, face, shine } = MEDAL_COLORS[name];
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.fillStyle = rim;
+    ctx.beginPath();
+    ctx.arc(0, 0, 34, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = face;
+    ctx.beginPath();
+    ctx.arc(0, 0, 28, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = shine;
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(0, 0, 21, Math.PI * 1.05, Math.PI * 1.65);
+    ctx.stroke();
+    ctx.fillStyle = rim;
+    ctx.font = "800 26px 'Avenir Next', 'Segoe UI', sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText("★", 0, 2);
+    ctx.restore();
+  }
+
+  function drawPanel() {
+    const age = Math.min(1, (clock - overAt) / 1000 / PANEL_SLIDE);
+    const eased = 1 - (1 - age) * (1 - age);
+    const width = 280;
+    const height = 220;
+    const x = (game.width - width) / 2;
+    const y = 110 - (1 - eased) * 40;
+    const earned = Flappy.medal(game.score);
+    const newBest = game.score > bestAtStart;
+
+    ctx.save();
+    ctx.globalAlpha = eased;
+    ctx.fillStyle = "#fffbeb";
+    ctx.strokeStyle = "#78350f";
+    ctx.lineWidth = 4;
+    roundedRect(x, y, width, height, 16);
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.fillStyle = "#1c1917";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "alphabetic";
+    ctx.font = "800 30px 'Avenir Next', 'Segoe UI', sans-serif";
+    ctx.fillText("Game over", game.width / 2, y + 44);
+
+    ctx.font = "700 14px 'Avenir Next', 'Segoe UI', sans-serif";
+    ctx.fillStyle = "#78716c";
+    ctx.textAlign = "left";
+    ctx.fillText("MEDAL", x + 28, y + 86);
+    ctx.textAlign = "right";
+    ctx.fillText("SCORE", x + width - 28, y + 86);
+    ctx.fillText("BEST", x + width - 28, y + 146);
+
+    ctx.fillStyle = "#1c1917";
+    ctx.font = "800 34px 'Avenir Next', 'Segoe UI', sans-serif";
+    ctx.fillText(String(game.score), x + width - 28, y + 118);
+    ctx.fillText(String(Math.max(best, game.score)), x + width - 28, y + 178);
+
+    if (earned) {
+      drawMedal(x + 70, y + 138, earned);
+    } else {
+      ctx.strokeStyle = "#d6d3d1";
+      ctx.lineWidth = 3;
+      ctx.setLineDash([5, 5]);
+      ctx.beginPath();
+      ctx.arc(x + 70, y + 138, 31, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+
+    if (newBest) {
+      ctx.fillStyle = "#e11d48";
+      roundedRect(x + width - 118, y + 132, 44, 20, 6);
+      ctx.fill();
+      ctx.fillStyle = "#fff";
+      ctx.font = "800 12px 'Avenir Next', 'Segoe UI', sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText("NEW", x + width - 96, y + 142);
+    }
+    ctx.restore();
+
+    ctx.save();
+    ctx.globalAlpha = eased;
+    ctx.fillStyle = "#fff";
+    ctx.strokeStyle = "#1c1917";
+    ctx.lineWidth = 5;
+    ctx.lineJoin = "round";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "alphabetic";
+    ctx.font = "800 20px 'Avenir Next', 'Segoe UI', sans-serif";
+    const hint = "Flap to play again";
+    ctx.strokeText(hint, game.width / 2, y + height + 40);
+    ctx.fillText(hint, game.width / 2, y + height + 40);
+    ctx.restore();
   }
 
   function drawScore() {
