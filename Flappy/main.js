@@ -4,6 +4,10 @@
   const MAX_FRAME = 0.25;
   // Taps that land right after a crash shouldn't start the next game by accident.
   const RESTART_DELAY_MS = 450;
+  // The bird noses up to UP_TILT after a flap and dives to DOWN_TILT (radians) as it falls.
+  const UP_TILT = -0.45;
+  const DOWN_TILT = 1.35;
+  const TILT_EASE = 12;
 
   const canvas = document.getElementById("field");
   const ctx = canvas.getContext("2d");
@@ -20,12 +24,16 @@
   let shownStatus = null;
   let best = Number(readStorage("flappy.best")) || 0;
   let bestAtStart = best;
+  let tilt = 0;
+  let wingPhase = 0;
 
   function newGame() {
     game = Flappy.create();
     carry = 0;
     overAt = 0;
     bestAtStart = best;
+    tilt = 0;
+    wingPhase = 0;
   }
 
   function readStorage(key) {
@@ -71,9 +79,25 @@
       if (events.crashed) overAt = now;
       carry -= STEP;
     }
+    animateBird(elapsed);
     draw();
     renderStatus();
     requestAnimationFrame(frame);
+  }
+
+  function animateBird(elapsed) {
+    const { vy } = game.bird;
+    let target = 0;
+    if (game.status !== "ready") {
+      const fall = vy < 0 ? vy / Flappy.FLAP_SPEED : vy / Flappy.MAX_FALL;
+      target = fall < 0 ? -fall * UP_TILT : fall * DOWN_TILT;
+    }
+    tilt += (target - tilt) * Math.min(1, elapsed * TILT_EASE);
+
+    // Wings beat fast on the way up, lazily while gliding, and stop once the bird has landed.
+    if (game.landed) return;
+    const speed = game.status === "ready" ? 9 : vy < 0 ? 24 : 11;
+    wingPhase = (wingPhase + elapsed * speed) % (Math.PI * 2);
   }
 
   function resize() {
@@ -155,6 +179,7 @@
     const { x, y } = game.bird;
     ctx.save();
     ctx.translate(x, y);
+    ctx.rotate(tilt);
 
     ctx.fillStyle = "#facc15";
     ctx.strokeStyle = "#78350f";
@@ -164,11 +189,16 @@
     ctx.fill();
     ctx.stroke();
 
+    const beat = Math.sin(wingPhase);
+    ctx.save();
+    ctx.translate(-6, 2);
+    ctx.rotate(-0.3 - beat * 0.55);
     ctx.fillStyle = "#fef3c7";
     ctx.beginPath();
-    ctx.ellipse(-7, 3, 8, 5, -0.3, 0, Math.PI * 2);
+    ctx.ellipse(-3, beat * 2, 9, 5, 0, 0, Math.PI * 2);
     ctx.fill();
     ctx.stroke();
+    ctx.restore();
 
     ctx.fillStyle = "#fff";
     ctx.beginPath();
