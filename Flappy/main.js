@@ -27,35 +27,75 @@
     gold: { rim: "#a16207", face: "#facc15", shine: "#fef08a" },
   };
   const PANEL_SLIDE = 0.35;
+  const FEATHER_LIFE = 0.9;
+  const POP_LIFE = 0.7;
+  const FLASH_LIFE = 0.28;
 
   const canvas = document.getElementById("field");
   const ctx = canvas.getContext("2d");
+  const stageEl = document.getElementById("stage");
   const statusEl = document.getElementById("status");
   const scoreEl = document.getElementById("score");
   const bestEl = document.getElementById("best");
   const helpEl = document.getElementById("help");
   const restartButton = document.getElementById("restart");
+  const pauseButton = document.getElementById("pause");
+  const autopilotButton = document.getElementById("autopilot");
+  const soundButton = document.getElementById("sound");
+  const levelButtons = [...document.querySelectorAll(".mode")];
 
+  let level = readStorage("flappy.level");
+  if (!Flappy.LEVELS[level]) level = "normal";
   let game;
   let lastTime = null;
   let carry = 0;
   let overAt = 0;
   let shownStatus = null;
-  let best = Number(readStorage("flappy.best")) || 0;
-  let bestAtStart = best;
+  let best = 0;
+  let bestAtStart = 0;
   let tilt = 0;
   let wingPhase = 0;
   // How far the scenery has slid. It keeps going between games and stops when the bird crashes.
   let scroll = 0;
   let clock = 0;
+  let paused = false;
+  let autopilot = false;
+  // Games the computer helped with don't count toward the best score.
+  let assisted = false;
+  let soundOn = readStorage("flappy.sound") !== "off";
+  let audio = null;
+  let feathers = [];
+  let pops = [];
+  let flashUntil = 0;
+  const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
   function newGame() {
-    game = Flappy.create();
+    game = Flappy.create({ level });
     carry = 0;
     overAt = 0;
+    best = loadBest();
     bestAtStart = best;
     tilt = 0;
     wingPhase = 0;
+    paused = false;
+    assisted = false;
+    feathers = [];
+    pops = [];
+    flashUntil = 0;
+    stageEl.classList.remove("is-shaking");
+    syncLevelButtons();
+  }
+
+  function loadBest() {
+    return Number(readStorage(`flappy.best.${level}`)) || 0;
+  }
+
+  function syncLevelButtons() {
+    levelButtons.forEach((button) => {
+      const selected = button.dataset.level === level;
+      button.classList.toggle("is-selected", selected);
+      button.setAttribute("aria-pressed", String(selected));
+    });
   }
 
   function readStorage(key) {
@@ -74,36 +114,121 @@
     }
   }
 
-  function scored() {
-    if (game.score <= best) return;
-    best = game.score;
-    writeStorage("flappy.best", String(best));
+  function scored(points) {
+    if (!assisted && game.score > best) {
+      best = game.score;
+      writeStorage(`flappy.best.${level}`, String(best));
+    }
+    for (let i = 0; i < points; i += 1) {
+      pops.push({
+        x: game.bird.x,
+        y: game.bird.y - 24,
+        age: 0,
+        life: POP_LIFE,
+      });
+    }
+    beep(660, 0.08, "square");
+    beep(880, 0.1, "square");
   }
 
-  function flap() {
+  function crashed() {
+    overAt = clock;
+    spawnFeathers();
+    flashUntil = clock + FLASH_LIFE * 1000;
+    if (!reduceMotion) {
+      stageEl.classList.remove("is-shaking");
+      void stageEl.offsetWidth;
+      stageEl.classList.add("is-shaking");
+    }
+    beep(180, 0.18, "sawtooth");
+    beep(90, 0.28, "square");
+  }
+
+  function spawnFeathers() {
+    const { x, y } = game.bird;
+    for (let i = 0; i < 14; i += 1) {
+      const angle = (Math.PI * 2 * i) / 14 + Math.random() * 0.4;
+      const speed = 80 + Math.random() * 160;
+      feathers.push({
+        x,
+        y,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed - 60,
+        spin: (Math.random() - 0.5) * 10,
+        rot: Math.random() * Math.PI,
+        age: 0,
+        life: FEATHER_LIFE * (0.7 + Math.random() * 0.5),
+      });
+    }
+  }
+
+  function flap(fromAI = false) {
+    if (paused) {
+      paused = false;
+      lastTime = null;
+    }
     if (game.status === "over") {
       if (game.landed && performance.now() - overAt > RESTART_DELAY_MS) {
         newGame();
-        Flappy.flap(game);
+        if (fromAI) assisted = true;
+        if (Flappy.flap(game)) beep(520, 0.06, "triangle");
       }
       return;
     }
-    Flappy.flap(game);
+    if (fromAI) assisted = true;
+    if (Flappy.flap(game)) beep(520, 0.06, "triangle");
+  }
+
+  function togglePause() {
+    if (game.status === "over") return;
+    paused = !paused;
+    lastTime = null;
+    renderStatus();
+  }
+
+  function toggleAutopilot() {
+    autopilot = !autopilot;
+    if (autopilot && game.status === "ready") flap(true);
+    renderStatus();
+  }
+
+  function beep(freq, duration, type = "square") {
+    if (!soundOn) return;
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContextClass) return;
+    audio = audio || new AudioContextClass();
+    if (audio.state === "suspended") audio.resume();
+    const now = audio.currentTime;
+    const osc = audio.createOscillator();
+    const gain = audio.createGain();
+    osc.type = type;
+    osc.frequency.value = freq;
+    gain.gain.setValueAtTime(0.05, now);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+    osc.connect(gain).connect(audio.destination);
+    osc.start(now);
+    osc.stop(now + duration);
   }
 
   function frame(now) {
     const elapsed = lastTime === null ? 0 : Math.min(MAX_FRAME, (now - lastTime) / 1000);
     lastTime = now;
     clock = now;
-    carry += elapsed;
-    while (carry >= STEP) {
-      const events = Flappy.step(game, STEP);
-      if (events.scored) scored();
-      if (events.crashed) overAt = now;
-      carry -= STEP;
+
+    if (!paused) {
+      carry += elapsed;
+      while (carry >= STEP) {
+        if (autopilot && FlappyAI.shouldFlap(game)) flap(true);
+        const events = Flappy.step(game, STEP);
+        if (events.scored) scored(events.scored);
+        if (events.crashed) crashed();
+        carry -= STEP;
+      }
+      if (game.status !== "over") scroll += game.speed * elapsed;
+      animateBird(elapsed);
+      updateEffects(elapsed);
     }
-    if (game.status !== "over") scroll += game.speed * elapsed;
-    animateBird(elapsed);
+
     draw();
     renderStatus();
     requestAnimationFrame(frame);
@@ -119,6 +244,22 @@
     if (game.landed) return;
     const speed = game.status === "ready" ? 9 : vy < 0 ? 24 : 11;
     wingPhase = (wingPhase + elapsed * speed) % (Math.PI * 2);
+  }
+
+  function updateEffects(elapsed) {
+    feathers = feathers.filter((f) => {
+      f.age += elapsed;
+      f.x += f.vx * elapsed;
+      f.y += f.vy * elapsed;
+      f.vy += 420 * elapsed;
+      f.rot += f.spin * elapsed;
+      return f.age < f.life;
+    });
+    pops = pops.filter((p) => {
+      p.age += elapsed;
+      p.y -= 40 * elapsed;
+      return p.age < p.life;
+    });
   }
 
   function resize() {
@@ -141,8 +282,12 @@
     game.pipes.forEach(drawPipe);
     drawGround();
     drawBird();
+    drawFeathers();
+    drawPops();
     if (game.status === "over" && game.landed) drawPanel();
     else if (game.status !== "ready") drawScore();
+    if (paused) drawPause();
+    drawFlash();
   }
 
   function roundedRect(x, y, w, h, r) {
@@ -188,7 +333,7 @@
     const x = (game.width - width) / 2;
     const y = 110 - (1 - eased) * 40;
     const earned = Flappy.medal(game.score);
-    const newBest = game.score > bestAtStart;
+    const newBest = !assisted && game.score > bestAtStart;
 
     ctx.save();
     ctx.globalAlpha = eased;
@@ -216,7 +361,7 @@
     ctx.fillStyle = "#1c1917";
     ctx.font = "800 34px 'Avenir Next', 'Segoe UI', sans-serif";
     ctx.fillText(String(game.score), x + width - 28, y + 118);
-    ctx.fillText(String(Math.max(best, game.score)), x + width - 28, y + 178);
+    ctx.fillText(String(Math.max(best, assisted ? bestAtStart : game.score)), x + width - 28, y + 178);
 
     if (earned) {
       drawMedal(x + 70, y + 138, earned);
@@ -269,6 +414,62 @@
     ctx.strokeText(String(game.score), game.width / 2, 36);
     ctx.fillText(String(game.score), game.width / 2, 36);
     ctx.restore();
+  }
+
+  function drawPause() {
+    ctx.fillStyle = "rgba(28, 25, 23, 0.35)";
+    ctx.fillRect(0, 0, game.width, game.height);
+    ctx.fillStyle = "#fff";
+    ctx.strokeStyle = "#1c1917";
+    ctx.lineWidth = 6;
+    ctx.lineJoin = "round";
+    ctx.font = "800 42px 'Avenir Next', 'Segoe UI', sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.strokeText("Paused", game.width / 2, game.floor / 2);
+    ctx.fillText("Paused", game.width / 2, game.floor / 2);
+  }
+
+  function drawFlash() {
+    if (clock >= flashUntil) return;
+    const left = (flashUntil - clock) / 1000 / FLASH_LIFE;
+    ctx.fillStyle = `rgba(255, 255, 255, ${0.55 * left})`;
+    ctx.fillRect(0, 0, game.width, game.height);
+  }
+
+  function drawFeathers() {
+    feathers.forEach((f) => {
+      const alpha = 1 - f.age / f.life;
+      ctx.save();
+      ctx.translate(f.x, f.y);
+      ctx.rotate(f.rot);
+      ctx.globalAlpha = alpha;
+      ctx.fillStyle = "#fef3c7";
+      ctx.strokeStyle = "#78350f";
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.ellipse(0, 0, 7, 3.5, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      ctx.restore();
+    });
+  }
+
+  function drawPops() {
+    pops.forEach((p) => {
+      const alpha = 1 - p.age / p.life;
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      ctx.fillStyle = "#fff";
+      ctx.strokeStyle = "#1c1917";
+      ctx.lineWidth = 4;
+      ctx.font = "800 22px 'Avenir Next', 'Segoe UI', sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.strokeText("+1", p.x, p.y);
+      ctx.fillText("+1", p.x, p.y);
+      ctx.restore();
+    });
   }
 
   function drawSky() {
@@ -414,10 +615,18 @@
   function renderStatus() {
     if (scoreEl.textContent !== String(game.score)) scoreEl.textContent = game.score;
     if (bestEl.textContent !== String(best)) bestEl.textContent = best;
+    pauseButton.disabled = game.status === "over";
+    pauseButton.textContent = paused ? "Resume" : "Pause";
+    autopilotButton.setAttribute("aria-pressed", String(autopilot));
+    autopilotButton.textContent = autopilot ? "Take over" : "Watch AI";
+    soundButton.setAttribute("aria-pressed", String(soundOn));
+    soundButton.textContent = soundOn ? "Sound on" : "Sound off";
 
     let text;
-    if (game.status === "ready") text = "Flap to start";
-    else if (game.status === "playing") text = "Fly through the gaps";
+    if (paused) text = "Paused";
+    else if (game.status === "ready") text = "Flap to start";
+    else if (game.status === "playing") text = autopilot ? "The computer is flying" : "Fly through the gaps";
+    else if (assisted) text = `Game over, scored ${game.score} with the AI's help`;
     else if (game.score > bestAtStart) text = `New best: ${game.score}!`;
     else text = `Game over, you scored ${game.score}`;
     if (text === shownStatus) return;
@@ -427,15 +636,52 @@
 
   document.addEventListener("keydown", (event) => {
     if (event.metaKey || event.ctrlKey || event.altKey || event.repeat) return;
+    if (event.code === "KeyP" || event.code === "Escape") {
+      event.preventDefault();
+      togglePause();
+      return;
+    }
+    if (event.code === "KeyI") {
+      event.preventDefault();
+      toggleAutopilot();
+      return;
+    }
     if (event.code !== "Space" && event.code !== "ArrowUp" && event.code !== "KeyW") return;
     if (event.code === "Space" && event.target instanceof Element && event.target.closest("button")) return;
     event.preventDefault();
-    flap();
+    if (autopilot) autopilot = false;
+    flap(false);
   });
 
   canvas.addEventListener("pointerdown", (event) => {
     event.preventDefault();
-    flap();
+    if (autopilot) autopilot = false;
+    flap(false);
+  });
+
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden && game.status === "playing" && !paused) {
+      paused = true;
+      lastTime = null;
+      renderStatus();
+    }
+  });
+
+  pauseButton.addEventListener("click", () => {
+    togglePause();
+    pauseButton.blur();
+  });
+
+  autopilotButton.addEventListener("click", () => {
+    toggleAutopilot();
+    autopilotButton.blur();
+  });
+
+  soundButton.addEventListener("click", () => {
+    soundOn = !soundOn;
+    writeStorage("flappy.sound", soundOn ? "on" : "off");
+    renderStatus();
+    soundButton.blur();
   });
 
   restartButton.addEventListener("click", () => {
@@ -443,7 +689,19 @@
     restartButton.blur();
   });
 
-  if (window.matchMedia("(pointer: coarse)").matches) helpEl.textContent = "Tap the field to flap";
+  levelButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      if (button.dataset.level === level) return;
+      level = button.dataset.level;
+      writeStorage("flappy.level", level);
+      autopilot = false;
+      newGame();
+    });
+  });
+
+  if (window.matchMedia("(pointer: coarse)").matches) {
+    helpEl.textContent = "Tap the field to flap · Pause and Watch AI are below the board";
+  }
 
   newGame();
   requestAnimationFrame(frame);

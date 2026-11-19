@@ -6,3 +6,4 @@ Small browser games I created in plain HTML, CSS and JavaScript. Open a game's `
 - [Snake](Snake/): the classic arcade game.
 - [2048](2048/): slide and merge tiles to reach 2048.
 - [Minesweeper](Minesweeper/): clear the board without setting off a mine.
+- [Flappy](Flappy/): flap through the pipes.

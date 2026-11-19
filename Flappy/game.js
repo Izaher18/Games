@@ -29,10 +29,17 @@
   const EDGE = 70;
   // Furthest one gap may sit above or below the last, so every climb can be made.
   const MAX_SHIFT = 170;
-  const DEFAULTS = { gap: 150, speed: 150 };
+  const LEVELS = {
+    easy: { gap: 180, speed: 120 },
+    normal: { gap: 150, speed: 150 },
+    hard: { gap: 120, speed: 190 },
+  };
+  const DEFAULTS = LEVELS.normal;
 
   function create(settings = {}) {
-    const options = { ...DEFAULTS, ...settings };
+    const level = LEVELS[settings.level] ? settings.level : null;
+    const options = { ...DEFAULTS, ...(level ? LEVELS[level] : {}), ...settings };
+    delete options.level;
     const floor = HEIGHT - GROUND;
     return {
       width: WIDTH,
@@ -175,6 +182,7 @@
     GRAVITY,
     FLAP_SPEED,
     MAX_FALL,
+    LEVELS,
     MEDALS,
     create,
     flap,

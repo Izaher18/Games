@@ -11,6 +11,11 @@
       <header class="top">
         <p class="kicker">Arcade classic</p>
         <h1>Flappy</h1>
+        <div class="modes" role="group" aria-label="Difficulty">
+          <button class="mode" id="level-easy" type="button" data-level="easy" aria-pressed="false">Easy</button>
+          <button class="mode is-selected" id="level-normal" type="button" data-level="normal" aria-pressed="true">Normal</button>
+          <button class="mode" id="level-hard" type="button" data-level="hard" aria-pressed="false">Hard</button>
+        </div>
         <div class="scores">
           <div class="score">
             <span class="chip pipe"></span>
@@ -31,12 +36,16 @@
       </div>
 
       <div class="actions">
+        <button class="secondary" id="pause" type="button">Pause</button>
+        <button class="secondary" id="autopilot" type="button" aria-pressed="false">Watch AI</button>
+        <button class="secondary" id="sound" type="button" aria-pressed="true">Sound on</button>
         <button class="restart" id="restart" type="button">New game</button>
       </div>
 
-      <p class="help" id="help">Space, Up, or a click to flap</p>
+      <p class="help" id="help">Space, Up, or a click to flap · P or Esc to pause · I to watch the AI</p>
     </main>
     <script src="game.js"></script>
+    <script src="ai.js"></script>
     <script src="main.js"></script>
   </body>
 </html>
