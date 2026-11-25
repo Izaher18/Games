@@ -293,6 +293,7 @@
     game.pipes.forEach(drawPipe);
     drawGround();
     drawBird();
+    if (autopilot && game.status !== "over") drawAITag();
     drawFeathers();
     drawPops();
     if (game.status === "ready" && !paused) drawReady();
@@ -300,6 +301,26 @@
     else if (game.status !== "ready") drawScore();
     if (paused) drawPause();
     drawFlash();
+  }
+
+  function drawAITag() {
+    const { x, y } = game.bird;
+    ctx.save();
+    ctx.font = "800 12px 'Avenir Next', 'Segoe UI', sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    const label = "AI";
+    const padX = 8;
+    const width = ctx.measureText(label).width + padX * 2;
+    const height = 18;
+    const tagX = x - width / 2;
+    const tagY = y - game.bird.radius - 28;
+    ctx.fillStyle = "#0ea5e9";
+    roundedRect(tagX, tagY, width, height, 6);
+    ctx.fill();
+    ctx.fillStyle = "#fff";
+    ctx.fillText(label, x, tagY + height / 2 + 0.5);
+    ctx.restore();
   }
 
   function drawReady() {
