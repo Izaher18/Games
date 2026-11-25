@@ -295,10 +295,29 @@
     drawBird();
     drawFeathers();
     drawPops();
+    if (game.status === "ready" && !paused) drawReady();
     if (game.status === "over" && game.landed) drawPanel();
     else if (game.status !== "ready") drawScore();
     if (paused) drawPause();
     drawFlash();
+  }
+
+  function drawReady() {
+    ctx.save();
+    ctx.fillStyle = "#fff";
+    ctx.strokeStyle = "#1c1917";
+    ctx.lineWidth = 6;
+    ctx.lineJoin = "round";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.font = "800 36px 'Avenir Next', 'Segoe UI', sans-serif";
+    ctx.strokeText("Get ready", game.width / 2, game.floor / 2 - 70);
+    ctx.fillText("Get ready", game.width / 2, game.floor / 2 - 70);
+    ctx.lineWidth = 4;
+    ctx.font = "700 18px 'Avenir Next', 'Segoe UI', sans-serif";
+    ctx.strokeText("Flap to start", game.width / 2, game.floor / 2 - 34);
+    ctx.fillText("Flap to start", game.width / 2, game.floor / 2 - 34);
+    ctx.restore();
   }
 
   function roundedRect(x, y, w, h, r) {
