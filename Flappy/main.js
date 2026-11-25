@@ -477,8 +477,14 @@
     ctx.font = "800 42px 'Avenir Next', 'Segoe UI', sans-serif";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.strokeText("Paused", game.width / 2, game.floor / 2);
-    ctx.fillText("Paused", game.width / 2, game.floor / 2);
+    const midY = game.floor / 2;
+    ctx.strokeText("Paused", game.width / 2, midY);
+    ctx.fillText("Paused", game.width / 2, midY);
+    ctx.lineWidth = 4;
+    ctx.font = "700 16px 'Avenir Next', 'Segoe UI', sans-serif";
+    const hint = "P / Esc or Resume";
+    ctx.strokeText(hint, game.width / 2, midY + 36);
+    ctx.fillText(hint, game.width / 2, midY + 36);
   }
 
   function drawFlash() {
