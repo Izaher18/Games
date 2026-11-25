@@ -30,6 +30,7 @@
   const FEATHER_LIFE = 0.9;
   const POP_LIFE = 0.7;
   const FLASH_LIFE = 0.28;
+  const FLAP_FLASH_LIFE = 0.12;
 
   const canvas = document.getElementById("field");
   const ctx = canvas.getContext("2d");
@@ -69,6 +70,7 @@
   let feathers = [];
   let pops = [];
   let flashUntil = 0;
+  let flapFlashUntil = 0;
   const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
   function newGame() {
@@ -84,6 +86,7 @@
     feathers = [];
     pops = [];
     flashUntil = 0;
+    flapFlashUntil = 0;
     stageEl.classList.remove("is-shaking");
     syncLevelButtons();
   }
@@ -173,12 +176,17 @@
       if (game.landed && performance.now() - overAt > RESTART_DELAY_MS) {
         newGame();
         if (fromAI) assisted = true;
-        if (Flappy.flap(game)) beep(520, 0.06, "triangle");
+        if (Flappy.flap(game)) acknowledgeFlap();
       }
       return;
     }
     if (fromAI) assisted = true;
-    if (Flappy.flap(game)) beep(520, 0.06, "triangle");
+    if (Flappy.flap(game)) acknowledgeFlap();
+  }
+
+  function acknowledgeFlap() {
+    if (!reduceMotion) flapFlashUntil = performance.now() + FLAP_FLASH_LIFE * 1000;
+    beep(520, 0.06, "triangle");
   }
 
   function togglePause() {
@@ -490,10 +498,16 @@
   }
 
   function drawFlash() {
-    if (clock >= flashUntil) return;
-    const left = (flashUntil - clock) / 1000 / FLASH_LIFE;
-    ctx.fillStyle = `rgba(255, 255, 255, ${0.55 * left})`;
-    ctx.fillRect(0, 0, game.width, game.height);
+    if (clock < flashUntil) {
+      const left = (flashUntil - clock) / 1000 / FLASH_LIFE;
+      ctx.fillStyle = `rgba(255, 255, 255, ${0.55 * left})`;
+      ctx.fillRect(0, 0, game.width, game.height);
+    }
+    if (clock < flapFlashUntil) {
+      const left = (flapFlashUntil - clock) / 1000 / FLAP_FLASH_LIFE;
+      ctx.fillStyle = `rgba(255, 255, 255, ${0.18 * left})`;
+      ctx.fillRect(0, 0, game.width, game.height);
+    }
   }
 
   function drawFeathers() {
