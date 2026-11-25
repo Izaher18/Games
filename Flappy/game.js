@@ -38,6 +38,10 @@
     hard: { gap: 120, speed: 190 },
   };
   const DEFAULTS = LEVELS.normal;
+  // Every RAMP_EVERY pipes cleared, add RAMP_AMOUNT to speed, up to RAMP_CAP extra.
+  const RAMP_EVERY = 5;
+  const RAMP_AMOUNT = 8;
+  const RAMP_CAP = 56;
 
   function create(settings = {}) {
     const level = LEVELS[settings.level] ? settings.level : null;
@@ -49,6 +53,7 @@
       height: HEIGHT,
       floor,
       gap: options.gap,
+      baseSpeed: options.speed,
       speed: options.speed,
       bird: { x: BIRD_X, y: floor / 2, vy: 0, radius: BIRD_RADIUS },
       pipes: [],
@@ -60,6 +65,11 @@
       time: 0,
       distance: 0,
     };
+  }
+
+  function speedForScore(baseSpeed, score) {
+    const steps = Math.floor(score / RAMP_EVERY);
+    return baseSpeed + Math.min(RAMP_CAP, steps * RAMP_AMOUNT);
   }
 
   function flap(state) {
@@ -167,6 +177,7 @@
       if (!pipe.scored && pipe.x + PIPE_WIDTH / 2 < bird.x) {
         pipe.scored = true;
         state.score += 1;
+        state.speed = speedForScore(state.baseSpeed, state.score);
         events.scored += 1;
       }
     }
@@ -198,9 +209,13 @@
     MAX_FALL,
     LEVELS,
     MEDALS,
+    RAMP_EVERY,
+    RAMP_AMOUNT,
+    RAMP_CAP,
     create,
     flap,
     step,
+    speedForScore,
     hitsPipe,
     medal,
   };
