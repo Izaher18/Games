@@ -235,13 +235,24 @@
   }
 
   function animateBird(elapsed) {
+    // Ready-state bob lives in the rules step; pin it still when motion should be reduced.
+    if (reduceMotion && game.status === "ready") {
+      game.bird.y = game.floor / 2;
+      wingPhase = 0;
+      tilt = 0;
+      return;
+    }
+
     const { vy } = game.bird;
     let target = 0;
     if (game.status !== "ready") target = vy < 0 ? UP_TILT : (vy / Flappy.MAX_FALL) * DOWN_TILT;
     tilt += (target - tilt) * Math.min(1, elapsed * TILT_EASE);
 
     // Wings beat fast on the way up, lazily while gliding, and stop once the bird has landed.
-    if (game.landed) return;
+    if (game.landed || reduceMotion) {
+      if (reduceMotion) wingPhase = 0;
+      return;
+    }
     const speed = game.status === "ready" ? 9 : vy < 0 ? 24 : 11;
     wingPhase = (wingPhase + elapsed * speed) % (Math.PI * 2);
   }
