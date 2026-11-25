@@ -517,7 +517,7 @@
     const top = pipe.gapY - game.gap / 2;
     const bottom = pipe.gapY + game.gap / 2;
     const lip = 22;
-    const overhang = 4;
+    const overhang = Flappy.PIPE_OVERHANG;
     const body = ctx.createLinearGradient(pipe.x, 0, pipe.x + Flappy.PIPE_WIDTH, 0);
     body.addColorStop(0, "#4ade80");
     body.addColorStop(0.45, "#86efac");

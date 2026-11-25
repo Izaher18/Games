@@ -24,6 +24,8 @@
   const FLAP_SPEED = 480;
   const MAX_FALL = 720;
   const PIPE_WIDTH = 68;
+  // Cap lips stick out past the pipe body; collision must match the drawing.
+  const PIPE_OVERHANG = 4;
   const PIPE_SPACING = 220;
   // Closest a gap may come to the ceiling or the ground.
   const EDGE = 70;
@@ -89,10 +91,19 @@
   function hitsPipe(state, pipe) {
     const left = pipe.x;
     const right = pipe.x + PIPE_WIDTH;
+    const lipLeft = left - PIPE_OVERHANG;
+    const lipRight = right + PIPE_OVERHANG;
     const top = pipe.gapY - state.gap / 2;
     const bottom = pipe.gapY + state.gap / 2;
+    const lip = 22;
+    // Bodies use the pipe width; lips use the wider overhang so they match the art.
     // The top pipe reaches past the ceiling so the bird can't slip over it.
-    return hitsRect(state.bird, left, -HEIGHT, right, top) || hitsRect(state.bird, left, bottom, right, state.floor);
+    return (
+      hitsRect(state.bird, left, -HEIGHT, right, top - lip) ||
+      hitsRect(state.bird, lipLeft, top - lip, lipRight, top) ||
+      hitsRect(state.bird, lipLeft, bottom, lipRight, bottom + lip) ||
+      hitsRect(state.bird, left, bottom + lip, right, state.floor)
+    );
   }
 
   /**
@@ -178,6 +189,7 @@
     HEIGHT,
     GROUND,
     PIPE_WIDTH,
+    PIPE_OVERHANG,
     PIPE_SPACING,
     GRAVITY,
     FLAP_SPEED,
