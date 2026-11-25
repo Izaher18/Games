@@ -42,7 +42,9 @@
   const pauseButton = document.getElementById("pause");
   const autopilotButton = document.getElementById("autopilot");
   const soundButton = document.getElementById("sound");
+  const shareButton = document.getElementById("share");
   const levelButtons = [...document.querySelectorAll(".mode")];
+  let shareReset = 0;
 
   let level = readStorage("flappy.level");
   if (!Flappy.LEVELS[level]) level = "normal";
@@ -679,6 +681,8 @@
     autopilotButton.textContent = autopilot ? "Take over" : "Watch AI";
     soundButton.setAttribute("aria-pressed", String(soundOn));
     soundButton.textContent = soundOn ? "Sound on" : "Sound off";
+    shareButton.disabled = game.status !== "over";
+    if (performance.now() >= shareReset) shareButton.textContent = "Copy score";
 
     let text;
     if (paused) text = "Paused";
@@ -745,6 +749,23 @@
   restartButton.addEventListener("click", () => {
     newGame();
     restartButton.blur();
+  });
+
+  shareButton.addEventListener("click", async () => {
+    const medal = Flappy.medal(game.score);
+    const parts = ["Flappy", String(game.score), level[0].toUpperCase() + level.slice(1)];
+    if (medal) parts.push(medal);
+    if (assisted) parts.push("with AI");
+    const text = parts.join(" · ");
+    try {
+      await navigator.clipboard.writeText(text);
+      shareButton.textContent = "Copied!";
+      shareReset = performance.now() + 1600;
+    } catch (error) {
+      shareButton.textContent = "Copy failed";
+      shareReset = performance.now() + 1600;
+    }
+    shareButton.blur();
   });
 
   levelButtons.forEach((button) => {
