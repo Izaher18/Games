@@ -19,7 +19,8 @@
   const HEIGHT = 600;
   const GROUND = 90;
   const BIRD_X = 120;
-  const BIRD_RADIUS = 13;
+  // Matches the drawn body height; the sprite is a bit wider, so side hits stay slightly soft.
+  const BIRD_RADIUS = 14;
   const GRAVITY = 1600;
   const FLAP_SPEED = 480;
   const MAX_FALL = 720;
@@ -188,6 +189,7 @@
     WIDTH,
     HEIGHT,
     GROUND,
+    BIRD_RADIUS,
     PIPE_WIDTH,
     PIPE_OVERHANG,
     PIPE_SPACING,

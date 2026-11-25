@@ -566,7 +566,7 @@
   }
 
   function drawBird() {
-    const { x, y } = game.bird;
+    const { x, y, radius } = game.bird;
     ctx.save();
     ctx.translate(x, y);
     ctx.rotate(tilt);
@@ -575,7 +575,8 @@
     ctx.strokeStyle = "#78350f";
     ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.ellipse(0, 0, 18, 14, 0, 0, Math.PI * 2);
+    // A little wider than the hit circle so the bird reads as oval, not a ball.
+    ctx.ellipse(0, 0, radius + 4, radius, 0, 0, Math.PI * 2);
     ctx.fill();
     ctx.stroke();
 
