@@ -31,6 +31,7 @@
   const undoEl = document.querySelector("#undo");
   const hintEl = document.querySelector("#hint");
   const soundEl = document.querySelector("#sound");
+  const shareEl = document.querySelector("#share");
   const restartEl = document.querySelector("#restart");
   const modeComputerEl = document.querySelector("#mode-computer");
   const modePeopleEl = document.querySelector("#mode-people");
@@ -57,6 +58,7 @@
   let audioCtx = null;
   let hintCol = -1;
   let hintTimer = 0;
+  let shareReset = 0;
 
   const savedDifficulty = readStorage(DIFFICULTY_KEY);
   if (savedDifficulty && DIFFICULTY[savedDifficulty]) difficulty = savedDifficulty;
@@ -117,6 +119,8 @@
     hintEl.disabled = !humanCanPlay();
     soundEl.textContent = soundOn ? "Sound on" : "Sound off";
     soundEl.setAttribute("aria-pressed", String(soundOn));
+    shareEl.disabled = !game.isOver;
+    if (performance.now() >= shareReset) shareEl.textContent = "Copy result";
   }
 
   function emptyScores() {
@@ -445,6 +449,24 @@
     writeStorage(SOUND_KEY, soundOn ? "on" : "off");
     if (soundOn) ensureAudio();
     syncChrome();
+  });
+
+  shareEl.addEventListener("click", async () => {
+    const mode = versusComputer ? "vs Computer" : "Two players";
+    const parts = ["Connect4", mode];
+    if (versusComputer) parts.push(difficulty[0].toUpperCase() + difficulty.slice(1));
+    if (game.winner) parts.push(sideName(game.winner) + " wins");
+    else if (game.isDraw) parts.push("draw");
+    const text = parts.join(" · ");
+    try {
+      await navigator.clipboard.writeText(text);
+      shareEl.textContent = "Copied!";
+      shareReset = performance.now() + 1600;
+    } catch (error) {
+      shareEl.textContent = "Copy failed";
+      shareReset = performance.now() + 1600;
+    }
+    shareEl.blur();
   });
 
   function ensureAudio() {
