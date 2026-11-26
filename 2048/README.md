@@ -7,8 +7,15 @@ The sliding tile puzzle in plain HTML, CSS and JavaScript. Open `index.html` in 
 - Hint (or H) flashes an arrow for the move the computer player would make.
 - Autoplay (or P) lets the computer play until you press it again or make a move yourself. Games it helped with don't count toward your best score.
 - Reach the 2048 tile to win, then keep going for a higher score. The game ends when no move is left.
-- Your best score is saved in the browser.
+- Your best score is saved in the browser. Copy score pastes a short summary when you win or the board is stuck.
+- Sound on plays short tones for slides, merges, wins, and game over. The switch is remembered.
 
 `game.js` holds the rules (sliding, merging, new tiles, game over) and works in the browser or Node. `ai.js` is the computer player and `main.js` handles drawing and input.
+
+Run the rules tests with:
+
+```bash
+node --test game.test.js
+```
 
 The computer player uses expectimax: it tries each move, averages over every 2 or 4 the game could add next (weighted by how likely each is), and looks two or three moves ahead. Boards score higher when big tiles line up in a snake from one corner and when more cells are empty. In testing it reaches 2048 in most games at a few milliseconds per move.
