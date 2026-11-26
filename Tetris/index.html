@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Tetris</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <main class="app">
+      <header class="top">
+        <p class="kicker">Arcade classic</p>
+        <h1>Tetris</h1>
+        <div class="modes" role="group" aria-label="Speed">
+          <button class="mode" id="speed-slow" type="button" data-speed="slow" aria-pressed="false">Slow</button>
+          <button class="mode is-selected" id="speed-normal" type="button" data-speed="normal" aria-pressed="true">Normal</button>
+          <button class="mode" id="speed-fast" type="button" data-speed="fast" aria-pressed="false">Fast</button>
+        </div>
+        <div class="scores">
+          <div class="score">
+            <span class="chip block"></span>
+            <span>Score</span>
+            <span class="tally" id="score">0</span>
+          </div>
+          <div class="score">
+            <span class="chip lines"></span>
+            <span>Lines</span>
+            <span class="tally" id="lines">0</span>
+          </div>
+          <div class="score">
+            <span class="chip crown"></span>
+            <span>Best</span>
+            <span class="tally" id="best">0</span>
+          </div>
+        </div>
+        <p class="status" id="status" role="status"></p>
+      </header>
+
+      <div class="stage" id="stage">
+        <aside class="rail" aria-label="Hold">
+          <p class="rail-label">Hold</p>
+          <canvas class="mini" id="hold" width="96" height="96" aria-hidden="true"></canvas>
+          <p class="rail-meta">Level <span id="level">1</span></p>
+        </aside>
+        <canvas class="field" id="field" width="300" height="600" aria-label="Tetris playing field"></canvas>
+        <aside class="rail" aria-label="Next pieces">
+          <p class="rail-label">Next</p>
+          <canvas class="mini" id="next" width="96" height="288" aria-hidden="true"></canvas>
+        </aside>
+      </div>
+
+      <div class="pad" role="group" aria-label="Piece controls">
+        <button class="arrow" id="pad-hold" type="button" aria-label="Hold">H</button>
+        <button class="arrow" id="pad-left" type="button" aria-label="Left">◀</button>
+        <button class="arrow" id="pad-rotate" type="button" aria-label="Rotate">↻</button>
+        <button class="arrow" id="pad-right" type="button" aria-label="Right">▶</button>
+        <button class="arrow" id="pad-soft" type="button" aria-label="Soft drop">▼</button>
+        <button class="arrow wide" id="pad-hard" type="button" aria-label="Hard drop">Drop</button>
+      </div>
+
+      <div class="actions">
+        <button class="secondary" id="pause" type="button">Pause</button>
+        <button class="secondary" id="autopilot" type="button" aria-pressed="false">Watch AI</button>
+        <button class="secondary" id="sound" type="button" aria-pressed="true">Sound on</button>
+        <button class="secondary" id="share" type="button" disabled>Copy score</button>
+        <button class="restart" id="restart" type="button">New game</button>
+      </div>
+
+      <p class="help" id="help">← → move · ↑ / X rotate · ↓ soft drop · Space hard drop · C hold · P pause · I watch AI</p>
+    </main>
+    <script src="game.js"></script>
+    <script src="ai.js"></script>
+    <script src="main.js"></script>
+  </body>
+</html>
