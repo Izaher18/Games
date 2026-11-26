@@ -33,6 +33,7 @@
   const hintArrow = document.getElementById("hint-arrow");
   const autoButton = document.getElementById("auto");
   const soundButton = document.getElementById("sound");
+  const shareButton = document.getElementById("share");
   const overlay = document.getElementById("overlay");
   const overlayTitle = document.getElementById("overlay-title");
   const keepGoingButton = document.getElementById("keep-going");
@@ -49,6 +50,7 @@
   let assisted = false;
   let soundOn = localStorage.getItem("2048.sound") !== "off";
   let audio = null;
+  let shareReset = 0;
   // Tiles keep their element across moves so CSS can animate them sliding.
   const elements = new Map();
   let settling = null;
@@ -241,6 +243,8 @@
     autoButton.textContent = autoTimer !== null ? "Stop" : "Autoplay";
     soundButton.setAttribute("aria-pressed", String(soundOn));
     soundButton.textContent = soundOn ? "Sound on" : "Sound off";
+    shareButton.disabled = !(celebrating || game.over);
+    if (performance.now() >= shareReset) shareButton.textContent = "Copy score";
 
     if (celebrating) {
       statusEl.textContent = assisted ? "The computer reached 2048!" : "You reached 2048!";
@@ -333,6 +337,22 @@
     localStorage.setItem("2048.sound", soundOn ? "on" : "off");
     render();
     soundButton.blur();
+  });
+  shareButton.addEventListener("click", async () => {
+    const highest = game.tiles.reduce((max, tile) => Math.max(max, tile.value), 0);
+    const parts = ["2048", String(game.score), `tile ${highest}`];
+    if (game.won) parts.push("won");
+    if (assisted) parts.push("with AI");
+    const text = parts.join(" · ");
+    try {
+      await navigator.clipboard.writeText(text);
+      shareButton.textContent = "Copied!";
+      shareReset = performance.now() + 1600;
+    } catch (error) {
+      shareButton.textContent = "Copy failed";
+      shareReset = performance.now() + 1600;
+    }
+    shareButton.blur();
   });
   tryAgainButton.addEventListener("click", newGame);
   keepGoingButton.addEventListener("click", keepGoing);
