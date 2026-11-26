@@ -1,4 +1,16 @@
-const Snake = (() => {
+/**
+ * Snake rules, shared by the page and (later) Node tests.
+ */
+(function (root, factory) {
+  const api = factory();
+  if (typeof module === "object" && module.exports) {
+    module.exports = api;
+  } else {
+    root.Snake = api;
+  }
+})(typeof globalThis !== "undefined" ? globalThis : this, function () {
+  "use strict";
+
   const DIRECTIONS = {
     up: { x: 0, y: -1 },
     down: { x: 0, y: 1 },
@@ -118,4 +130,4 @@ const Snake = (() => {
   }
 
   return { DIRECTIONS, create, turn, step, mazes };
-})();
+});
