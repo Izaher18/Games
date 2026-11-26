@@ -18,6 +18,8 @@ You can also move between columns with the keyboard and drop a disc with Enter o
 
 **Sound on** plays a short note for each drop, and a small flourish when the game ends. The switch is remembered in this browser.
 
+**Copy result** pastes a short summary once the game is over (who won or draw, mode, and difficulty).
+
 ## Project layout
 
 | File | Role |
@@ -27,5 +29,12 @@ You can also move between columns with the keyboard and drop a disc with Enter o
 | `board.js` | Rules: drops, wins, draws |
 | `ai.js` | Computer opponent |
 | `main.js` | Board UI and turn flow |
+| `board.test.js` | Node tests for the rules |
 
 `board.js` exposes `ConnectFour` in the browser and as a Node export. `ai.js` uses those same rules to choose Yellow's move.
+
+Run the rules tests with:
+
+```bash
+node --test board.test.js
+```
