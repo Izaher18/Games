@@ -10,6 +10,7 @@
   const undoButton = document.getElementById("undo");
   const hintButton = document.getElementById("hint");
   const flagModeButton = document.getElementById("flag-mode");
+  const soundButton = document.getElementById("sound");
   const helpEl = document.getElementById("help");
   const levelButtons = [...document.querySelectorAll(".mode")];
 
@@ -27,6 +28,8 @@
   let suppressClick = false;
   let press = null;
   let heldAt = 0;
+  let soundOn = readStorage("minesweeper.sound") !== "off";
+  let audio = null;
   const LONG_PRESS_MS = 450;
   // Seconds already on the clock, plus the moment the current run started.
   let baseSeconds = 0;
@@ -139,6 +142,7 @@
   function apply(next, opened) {
     const starting = game.status === "ready" && next.status !== "ready";
     const blewUp = next.status === "lost" && game.status !== "lost";
+    const cleared = next.status === "won" && game.status !== "won";
     game = next;
     fresh = new Set(opened || []);
     if (game.status === "won" || game.status === "lost") {
@@ -151,8 +155,34 @@
       stageEl.classList.remove("is-shaking");
       void stageEl.offsetWidth;
       stageEl.classList.add("is-shaking");
+      beep(120, 0.22, "sawtooth");
+      beep(70, 0.3, "square");
+    } else if (cleared) {
+      beep(523, 0.1, "triangle");
+      beep(659, 0.12, "triangle");
+      beep(784, 0.16, "triangle");
+    } else if (opened && opened.length) {
+      beep(420 + Math.min(180, opened.length * 12), 0.05, "triangle");
     }
     render();
+  }
+
+  function beep(freq, duration, type = "square") {
+    if (!soundOn) return;
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContextClass) return;
+    audio = audio || new AudioContextClass();
+    if (audio.state === "suspended") audio.resume();
+    const now = audio.currentTime;
+    const osc = audio.createOscillator();
+    const gain = audio.createGain();
+    osc.type = type;
+    osc.frequency.value = freq;
+    gain.gain.setValueAtTime(0.05, now);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+    osc.connect(gain).connect(audio.destination);
+    osc.start(now);
+    osc.stop(now + duration);
   }
 
   function paintFace(down) {
@@ -217,8 +247,11 @@
     if (!next) return;
     remember();
     hinted = null;
+    const planted = next.flagged[index] && !game.flagged[index];
     game = next;
     fresh = new Set();
+    if (planted) beep(280, 0.05, "square");
+    else beep(220, 0.04, "triangle");
     render();
   }
 
@@ -228,6 +261,8 @@
     undoButton.disabled = history.length === 0;
     hintButton.disabled = game.status === "won" || game.status === "lost";
     flagModeButton.setAttribute("aria-pressed", String(flagMode));
+    soundButton.setAttribute("aria-pressed", String(soundOn));
+    soundButton.textContent = soundOn ? "Sound on" : "Sound off";
     minesEl.textContent = String(game.mines - Minesweeper.flagCount(game));
     bestEl.textContent = best === null ? "—" : formatTime(best);
     paintClock();
@@ -449,6 +484,13 @@
     render();
   });
   faceEl.addEventListener("click", newGame);
+  soundButton.addEventListener("click", () => {
+    soundOn = !soundOn;
+    writeStorage("minesweeper.sound", soundOn ? "on" : "off");
+    render();
+    soundButton.blur();
+  });
+
   restartButton.addEventListener("click", newGame);
   levelButtons.forEach((button) => {
     button.addEventListener("click", () => {
