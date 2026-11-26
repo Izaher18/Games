@@ -11,6 +11,7 @@
   const hintButton = document.getElementById("hint");
   const flagModeButton = document.getElementById("flag-mode");
   const soundButton = document.getElementById("sound");
+  const shareButton = document.getElementById("share");
   const helpEl = document.getElementById("help");
   const levelButtons = [...document.querySelectorAll(".mode")];
 
@@ -30,6 +31,7 @@
   let heldAt = 0;
   let soundOn = readStorage("minesweeper.sound") !== "off";
   let audio = null;
+  let shareReset = 0;
   const LONG_PRESS_MS = 450;
   // Seconds already on the clock, plus the moment the current run started.
   let baseSeconds = 0;
@@ -263,6 +265,8 @@
     flagModeButton.setAttribute("aria-pressed", String(flagMode));
     soundButton.setAttribute("aria-pressed", String(soundOn));
     soundButton.textContent = soundOn ? "Sound on" : "Sound off";
+    shareButton.disabled = !finished;
+    if (performance.now() >= shareReset) shareButton.textContent = "Copy result";
     minesEl.textContent = String(game.mines - Minesweeper.flagCount(game));
     bestEl.textContent = best === null ? "—" : formatTime(best);
     paintClock();
@@ -489,6 +493,24 @@
     writeStorage("minesweeper.sound", soundOn ? "on" : "off");
     render();
     soundButton.blur();
+  });
+
+  shareButton.addEventListener("click", async () => {
+    const levelLabel = level[0].toUpperCase() + level.slice(1);
+    const parts = ["Minesweeper", levelLabel];
+    if (game.status === "won") parts.push(formatTime(elapsedSeconds()));
+    else parts.push("boom");
+    if (assisted) parts.push("with hint");
+    const text = parts.join(" · ");
+    try {
+      await navigator.clipboard.writeText(text);
+      shareButton.textContent = "Copied!";
+      shareReset = performance.now() + 1600;
+    } catch (error) {
+      shareButton.textContent = "Copy failed";
+      shareReset = performance.now() + 1600;
+    }
+    shareButton.blur();
   });
 
   restartButton.addEventListener("click", newGame);
