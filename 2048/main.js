@@ -32,6 +32,7 @@
   const hintButton = document.getElementById("hint");
   const hintArrow = document.getElementById("hint-arrow");
   const autoButton = document.getElementById("auto");
+  const soundButton = document.getElementById("sound");
   const overlay = document.getElementById("overlay");
   const overlayTitle = document.getElementById("overlay-title");
   const keepGoingButton = document.getElementById("keep-going");
@@ -46,6 +47,8 @@
   let autoTimer = null;
   // Games the computer helped play don't count toward the best score.
   let assisted = false;
+  let soundOn = localStorage.getItem("2048.sound") !== "off";
+  let audio = null;
   // Tiles keep their element across moves so CSS can animate them sliding.
   const elements = new Map();
   let settling = null;
@@ -87,6 +90,16 @@
     }
     celebrating = result.justWon;
     if (result.gained) bump(result.gained);
+    if (result.justWon) {
+      beep(660, 0.1, "triangle");
+      beep(880, 0.14, "triangle");
+    } else if (game.over) {
+      beep(180, 0.2, "sawtooth");
+    } else if (result.gained) {
+      beep(520 + Math.min(400, result.gained), 0.08, "square");
+    } else {
+      beep(320, 0.05, "triangle");
+    }
 
     // Slide every old tile (including the pairs that are about to merge) to where
     // it ends up, then swap in the merged and new tiles once the slide is done.
@@ -94,6 +107,24 @@
     mergedIds = new Set(result.merges.map(({ tile }) => tile.id));
     settling = setTimeout(settle, SLIDE_MS);
     render();
+  }
+
+  function beep(freq, duration, type = "square") {
+    if (!soundOn) return;
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContextClass) return;
+    audio = audio || new AudioContextClass();
+    if (audio.state === "suspended") audio.resume();
+    const now = audio.currentTime;
+    const osc = audio.createOscillator();
+    const gain = audio.createGain();
+    osc.type = type;
+    osc.frequency.value = freq;
+    gain.gain.setValueAtTime(0.05, now);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+    osc.connect(gain).connect(audio.destination);
+    osc.start(now);
+    osc.stop(now + duration);
   }
 
   function bump(points) {
@@ -208,6 +239,8 @@
     autoButton.disabled = celebrating || game.over;
     autoButton.setAttribute("aria-pressed", autoTimer !== null);
     autoButton.textContent = autoTimer !== null ? "Stop" : "Autoplay";
+    soundButton.setAttribute("aria-pressed", String(soundOn));
+    soundButton.textContent = soundOn ? "Sound on" : "Sound off";
 
     if (celebrating) {
       statusEl.textContent = assisted ? "The computer reached 2048!" : "You reached 2048!";
@@ -295,6 +328,12 @@
   undoButton.addEventListener("click", undo);
   hintButton.addEventListener("click", hint);
   autoButton.addEventListener("click", toggleAuto);
+  soundButton.addEventListener("click", () => {
+    soundOn = !soundOn;
+    localStorage.setItem("2048.sound", soundOn ? "on" : "off");
+    render();
+    soundButton.blur();
+  });
   tryAgainButton.addEventListener("click", newGame);
   keepGoingButton.addEventListener("click", keepGoing);
 
