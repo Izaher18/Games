@@ -9,3 +9,4 @@ Each game keeps its best score (or time) in the browser, can copy a short result
 - [2048](2048/): slide and merge tiles to reach 2048.
 - [Minesweeper](Minesweeper/): clear the board without setting off a mine.
 - [Flappy](Flappy/): flap through the pipes.
+- [Tetris](Tetris/): rotate and clear lines.
