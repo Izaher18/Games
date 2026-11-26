@@ -38,8 +38,10 @@
   const statusEl = document.getElementById("status");
   const pauseButton = document.getElementById("pause");
   const soundButton = document.getElementById("sound");
+  const shareButton = document.getElementById("share");
   const autopilotButton = document.getElementById("autopilot");
   const restartButton = document.getElementById("restart");
+  let shareReset = 0;
   const speedButtons = document.querySelectorAll("[data-speed]");
   const modeButtons = document.querySelectorAll("[data-mode]");
   const touchScreen = window.matchMedia("(pointer: coarse)").matches;
@@ -269,6 +271,8 @@
     autopilotButton.setAttribute("aria-pressed", String(autopilot));
     soundButton.textContent = soundOn ? "Sound on" : "Sound off";
     soundButton.setAttribute("aria-pressed", String(soundOn));
+    shareButton.disabled = phase !== "over";
+    if (performance.now() >= shareReset) shareButton.textContent = "Copy score";
     speedButtons.forEach((button) => {
       const selected = button.dataset.speed === speed;
       button.classList.toggle("is-selected", selected);
@@ -611,6 +615,24 @@
     soundOn = !soundOn;
     localStorage.setItem("snake.sound", soundOn ? "on" : "off");
     update();
+  });
+
+  shareButton.addEventListener("click", async () => {
+    const speedLabel = speed[0].toUpperCase() + speed.slice(1);
+    const modeLabel = mode[0].toUpperCase() + mode.slice(1);
+    const parts = ["Snake", String(game.score), speedLabel, modeLabel];
+    if (game.won) parts.push("cleared");
+    if (aiPlayed) parts.push("with AI");
+    const text = parts.join(" · ");
+    try {
+      await navigator.clipboard.writeText(text);
+      shareButton.textContent = "Copied!";
+      shareReset = performance.now() + 1600;
+    } catch (error) {
+      shareButton.textContent = "Copy failed";
+      shareReset = performance.now() + 1600;
+    }
+    shareButton.blur();
   });
 
   document.addEventListener("visibilitychange", () => {
